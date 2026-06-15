@@ -70,47 +70,52 @@
   #canvas{position:absolute;inset:0;}
   .canvas-wrap.placing{cursor:copy}
   .node{
-    position:absolute;width:104px;min-height:64px;background:var(--node);
-    border:1.5px solid var(--line);border-radius:9px;box-shadow:var(--shadow);
-    cursor:move;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:8px 6px 7px;z-index:5;transition:box-shadow .12s,border-color .12s;
+    position:absolute;cursor:move;z-index:5;
+    filter:drop-shadow(0 2px 4px rgba(20,40,30,.14));
   }
-  .node.sel{border-color:var(--steam);box-shadow:0 0 0 3px rgba(192,82,42,.18),var(--shadow)}
-  .node .glyph{margin-bottom:3px}
-  .node .nm{font-size:11px;font-weight:600;text-align:center;line-height:1.1}
-  .node .ty{font-family:var(--mono);font-size:8.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-top:1px}
+  .node .shape{width:100%;height:100%;transition:transform .1s}
+  .node.sel .shape svg{filter:drop-shadow(0 0 0 transparent)}
+  .node.sel{outline:2.5px solid var(--steam);outline-offset:3px;border-radius:6px}
+  .node .nm{position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);
+    font-size:11px;font-weight:600;text-align:center;line-height:1.15;white-space:nowrap;
+    color:var(--ink);pointer-events:none;text-shadow:0 1px 2px var(--paper),0 -1px 2px var(--paper)}
+  .node .nm .ty{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.6px;
+    text-transform:uppercase;color:var(--muted);font-weight:500;margin-top:1px}
   /* draw.io-style connection ports: faint until you hover the node, then clear */
   .port{
-    position:absolute;width:15px;height:15px;border-radius:50%;
-    background:var(--cool);border:2px solid #fff;cursor:crosshair;z-index:7;
-    opacity:0;transition:opacity .12s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.25);
+    position:absolute;width:13px;height:13px;border-radius:50%;
+    background:var(--cool);border:2px solid #fff;cursor:crosshair;z-index:8;
+    opacity:0;transition:opacity .12s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.3);
+    transform:translate(-50%,-50%);
   }
-  .node:hover .port{opacity:.55}
-  .port:hover{opacity:1!important;transform:scale(1.35)}
-  .port.in{left:-8px;top:50%;transform:translateY(-50%);background:var(--ok)}
-  .port.in:hover{transform:translateY(-50%) scale(1.35)}
-  .port.out{right:-8px;top:50%;transform:translateY(-50%)}
-  .port.out:hover{transform:translateY(-50%) scale(1.35)}
-  .port.tgt{opacity:1!important;transform:translateY(-50%) scale(1.5);box-shadow:0 0 0 4px rgba(58,110,165,.3)}
-  .port.in.tgt{background:var(--ok);box-shadow:0 0 0 4px rgba(47,125,85,.3)}
+  .node:hover .port,.node.sel .port{opacity:.75}
+  .port:hover{opacity:1!important;transform:translate(-50%,-50%) scale(1.45)}
+  .port.in{background:var(--ok)}
+  .port.tgt{opacity:1!important;transform:translate(-50%,-50%) scale(1.6);box-shadow:0 0 0 4px rgba(58,110,165,.35)}
+  .port.in.tgt{box-shadow:0 0 0 4px rgba(47,125,85,.35)}
+  .port-label{position:absolute;font-family:var(--mono);font-size:8.5px;color:var(--muted);
+    pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s;z-index:8;
+    background:rgba(251,250,245,.9);padding:0 3px;border-radius:3px}
+  .node:hover .port-label,.node.sel .port-label{opacity:.85}
   /* highlight a node as a valid drop target while wiring */
-  .node.wire-target{border-color:var(--cool);box-shadow:0 0 0 3px rgba(58,110,165,.25),var(--shadow)}
+  .node.wire-target .shape{transform:scale(1.04)}
 
   header button:disabled{opacity:.35;cursor:default}
   header button:disabled:hover{background:#1c322c;border-color:#335048}
 
-  svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
+  svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
   .wire{fill:none;stroke:var(--line);stroke-width:2.5;pointer-events:stroke;cursor:pointer}
   .wire.hot{stroke:var(--steam)}
   .wire.cold{stroke:var(--cool)}
   .wire.sel{stroke-width:3.5}
   .wire-label{font-family:var(--mono);font-size:10px;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round}
-  .wire-label-bg{fill:var(--paper);opacity:.92}
-  .wire-hit{stroke:transparent;stroke-width:16;fill:none;pointer-events:stroke;cursor:pointer}
+  .wire-hit{stroke:transparent;stroke-width:18;fill:none;pointer-events:stroke;cursor:pointer}
   .waypoint{fill:var(--node);stroke:var(--steam);stroke-width:2;cursor:move;pointer-events:all}
   .waypoint:hover{fill:var(--steam)}
-  .waypoint.ghost{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3;cursor:copy;opacity:.55}
+  .waypoint.ghost{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3;cursor:copy;opacity:.5}
   .waypoint.ghost:hover{opacity:1;stroke:var(--steam)}
+  .endpoint{fill:#fff;stroke:var(--steam);stroke-width:2.5;cursor:grab;pointer-events:all}
+  .endpoint:hover{fill:var(--steam)}
 
   /* ---- inspector ---- */
   .inspector{
@@ -176,7 +181,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">FlowSim <small>steady-state flowsheeting simulator</small></div>
+  <div class="brand">Flowsheet <small>steady-state simulator</small></div>
   <div class="topbtns">
     <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3aa">Property method
       <select id="thermoSel" style="font-family:var(--mono);font-size:11px;background:#1c322c;color:var(--paper);border:1px solid #335048;border-radius:5px;padding:6px 8px">
@@ -205,7 +210,7 @@
   <aside class="palette" id="palette"></aside>
 
   <div class="canvas-wrap" id="cwrap">
-    <div class="tip">Click a block in the palette then click the canvas to place it (or drag it in) · hover a block and drag the blue dot to connect · click a stream and drag its handles to bend it</div>
+    <div class="tip">Place: click a palette block, then click the canvas · Connect: hover a block, drag a port (green = in, blue = out) to another block · Edit a stream: click it, then drag the square ends to re-attach or the round handles to bend · Routing menu sets curved / right-angle (auto-avoids blocks) / straight</div>
     <svg class="wires" id="wires">
       <defs>
         <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -404,30 +409,115 @@ function kValues(x,y,T_c,P_bar){
 }
 
 // ---------- Unit type registry ----------
+// Each unit declares named connection ports. A port has:
+//   id    – stable identifier used by edges and the solver
+//   label – shown in tooltip / inspector
+//   dir   – 'in' | 'out'
+//   side  – 'left'|'right'|'top'|'bottom'  (which edge of the block)
+//   pos   – 0..1 fractional position along that side
+// `w`/`h` set the block's pixel size so taller units (columns) look right.
 const UNIT_DEFS = {
-  feed:    {name:'Feed',         cat:'Sources',  in:0, out:1, glyph:gFeed},
-  product: {name:'Product',      cat:'Sinks',    in:1, out:0, glyph:gProduct},
-  mixer:   {name:'Mixer',        cat:'Mixing',   in:3, out:1, glyph:gMixer},
-  splitter:{name:'Splitter',     cat:'Mixing',   in:1, out:2, glyph:gSplit},
-  heater:  {name:'Heater/Cooler',cat:'Thermal',  in:1, out:1, glyph:gHeater},
-  pump:    {name:'Pump',         cat:'Pressure', in:1, out:1, glyph:gPump},
-  flash:   {name:'Flash Drum',   cat:'Separation',in:1,out:2, glyph:gFlash},
-  column:  {name:'Distillation',  cat:'Separation',in:1,out:2, glyph:gColumn},
-  compsep: {name:'Comp. Separator',cat:'Separation',in:1,out:2,glyph:gSep},
-  reactor: {name:'Conv. Reactor',cat:'Reaction', in:1, out:1, glyph:gReactor},
+  feed:    {name:'Feed', cat:'Sources', w:96,h:62, glyph:gFeed, ports:[
+    {id:'out',label:'Outlet',dir:'out',side:'right',pos:0.5}]},
+  product: {name:'Product', cat:'Sinks', w:96,h:62, glyph:gProduct, ports:[
+    {id:'in',label:'Inlet',dir:'in',side:'left',pos:0.5}]},
+  mixer:   {name:'Mixer', cat:'Mixing', w:88,h:84, glyph:gMixer, ports:[
+    {id:'in1',label:'Inlet 1',dir:'in',side:'left',pos:0.22},
+    {id:'in2',label:'Inlet 2',dir:'in',side:'left',pos:0.5},
+    {id:'in3',label:'Inlet 3',dir:'in',side:'left',pos:0.78},
+    {id:'out',label:'Outlet',dir:'out',side:'right',pos:0.5}]},
+  splitter:{name:'Splitter (Tee)', cat:'Mixing', w:88,h:84, glyph:gSplit, ports:[
+    {id:'in',label:'Inlet',dir:'in',side:'left',pos:0.5},
+    {id:'out1',label:'Outlet 1',dir:'out',side:'right',pos:0.28},
+    {id:'out2',label:'Outlet 2',dir:'out',side:'right',pos:0.72}]},
+  heater:  {name:'Heater / Cooler', cat:'Thermal', w:92,h:72, glyph:gHeater, ports:[
+    {id:'in',label:'Inlet',dir:'in',side:'left',pos:0.5},
+    {id:'out',label:'Outlet',dir:'out',side:'right',pos:0.5}]},
+  pump:    {name:'Pump', cat:'Pressure', w:84,h:72, glyph:gPump, ports:[
+    {id:'in',label:'Suction',dir:'in',side:'left',pos:0.5},
+    {id:'out',label:'Discharge',dir:'out',side:'right',pos:0.5}]},
+  flash:   {name:'Flash Drum', cat:'Separation', w:84,h:96, glyph:gFlash, ports:[
+    {id:'feed',label:'Feed',dir:'in',side:'left',pos:0.5},
+    {id:'vap',label:'Vapor',dir:'out',side:'top',pos:0.5},
+    {id:'liq',label:'Liquid',dir:'out',side:'bottom',pos:0.5}]},
+  column:  {name:'Distillation Column', cat:'Separation', w:78,h:150, glyph:gColumn, ports:[
+    {id:'feed',label:'Feed',dir:'in',side:'left',pos:0.5},
+    {id:'dist',label:'Distillate',dir:'out',side:'top',pos:0.5},
+    {id:'btms',label:'Bottoms',dir:'out',side:'bottom',pos:0.5},
+    {id:'side',label:'Side draw',dir:'out',side:'right',pos:0.55}]},
+  compsep: {name:'Component Separator', cat:'Separation', w:84,h:96, glyph:gSep, ports:[
+    {id:'feed',label:'Feed',dir:'in',side:'left',pos:0.5},
+    {id:'top',label:'Top product',dir:'out',side:'top',pos:0.5},
+    {id:'bot',label:'Bottom product',dir:'out',side:'bottom',pos:0.5}]},
+  reactor: {name:'Conversion Reactor', cat:'Reaction', w:90,h:96, glyph:gReactor, ports:[
+    {id:'in',label:'Feed',dir:'in',side:'left',pos:0.5},
+    {id:'out',label:'Product',dir:'out',side:'right',pos:0.5}]},
 };
+// Convenience accessors over the new port schema (replace old in/out counts).
+function unitPorts(type){return UNIT_DEFS[type].ports;}
+function portDef(type,pid){return UNIT_DEFS[type].ports.find(p=>p.id===pid);}
+function outPorts(type){return UNIT_DEFS[type].ports.filter(p=>p.dir==='out');}
+function inPorts(type){return UNIT_DEFS[type].ports.filter(p=>p.dir==='in');}
 
-// ---------- SVG glyphs ----------
-function gFeed(){return `<svg width=30 height=24 viewBox="0 0 30 24" fill=none stroke=var(--line) stroke-width=1.6><path d="M3 12h18"/><path d="M21 8l5 4-5 4z" fill=var(--line)/><circle cx=6 cy=12 r=3 fill=var(--steam) stroke=none/></svg>`;}
-function gProduct(){return `<svg width=30 height=24 viewBox="0 0 30 24" fill=none stroke=var(--line) stroke-width=1.6><path d="M3 12h18"/><circle cx=24 cy=12 r=3 fill=var(--ink) stroke=none/><path d="M9 8l5 4-5 4z" fill=var(--line)/></svg>`;}
-function gMixer(){return `<svg width=32 height=26 viewBox="0 0 32 26" fill=none stroke=var(--line) stroke-width=1.6><path d="M4 6h8M4 20h8M12 6v14M12 13h16"/><circle cx=12 cy=13 r=4 fill=var(--cool) stroke=none/></svg>`;}
-function gSplit(){return `<svg width=32 height=26 viewBox="0 0 32 26" fill=none stroke=var(--line) stroke-width=1.6><path d="M4 13h16M20 13l8-7M20 13l8 7"/><circle cx=20 cy=13 r=4 fill=var(--cool) stroke=none/></svg>`;}
-function gHeater(){return `<svg width=30 height=26 viewBox="0 0 30 26" fill=none stroke=var(--line) stroke-width=1.6><circle cx=15 cy=13 r=9/><path d="M11 17c1-2-1-4 0-6s-1-4 0-6M19 17c1-2-1-4 0-6" stroke=var(--steam)/></svg>`;}
-function gPump(){return `<svg width=28 height=26 viewBox="0 0 28 26" fill=none stroke=var(--line) stroke-width=1.6><circle cx=14 cy=13 r=9/><path d="M14 4v9l8 4" stroke=var(--cool)/></svg>`;}
-function gFlash(){return `<svg width=24 height=30 viewBox="0 0 24 30" fill=none stroke=var(--line) stroke-width=1.6><rect x=7 y=3 width=10 height=24 rx=5/><path d="M9 14h6M9 18h6" stroke=var(--cool)/></svg>`;}
-function gSep(){return `<svg width=26 height=30 viewBox="0 0 26 30" fill=none stroke=var(--line) stroke-width=1.6><rect x=6 y=3 width=14 height=24 rx=3/><path d="M6 15h14" stroke=var(--steam)/></svg>`;}
-function gColumn(){return `<svg width=22 height=32 viewBox="0 0 22 32" fill=none stroke=var(--line) stroke-width=1.5><rect x=7 y=2 width=8 height=28 rx=4/><path d="M7 8h8M7 13h8M7 18h8M7 23h8" stroke=var(--cool) stroke-width=1.1/></svg>`;}
-function gReactor(){return `<svg width=26 height=30 viewBox="0 0 26 30" fill=none stroke=var(--line) stroke-width=1.6><rect x=5 y=3 width=16 height=24 rx=8/><path d="M10 20c2-3 4 0 6-3" stroke=var(--steam)/><circle cx=13 cy=11 r=2 fill=var(--cool) stroke=none/></svg>`;}
+// ---------- Standard P&ID / unit-operation symbols ----------
+// Each fills its node via viewBox matched to the unit's w:h. The shape is the
+// block; ports attach at the perimeter. Conventions follow common PFD symbols.
+const SY='var(--line)', AC='var(--steam)', CL='var(--cool)', FILL='var(--node)';
+function svg(vb,inner){return `<svg viewBox="${vb}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${inner}</svg>`;}
+
+// Feed: source arrow into a node (we draw a small tank/arrow)
+function gFeed(){return svg('0 0 96 62',
+  `<rect x="6" y="14" width="62" height="34" rx="4" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M16 31h40" stroke="${AC}" stroke-width="2.5" fill="none"/>
+   <path d="M50 25l9 6-9 6z" fill="${AC}"/>`);}
+// Product: receiving node / delivery
+function gProduct(){return svg('0 0 96 62',
+  `<rect x="28" y="14" width="62" height="34" rx="4" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M40 31h34" stroke="${SY}" stroke-width="2.5" fill="none"/>
+   <circle cx="74" cy="31" r="4.5" fill="${SY}"/>`);}
+// Mixer: three inlets merging (standard mixing junction in a vessel)
+function gMixer(){return svg('0 0 88 84',
+  `<circle cx="44" cy="42" r="30" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M20 26h24M20 42h24M20 58h24" stroke="${SY}" stroke-width="1.6" fill="none"/>
+   <path d="M44 42h24" stroke="${AC}" stroke-width="2.4" fill="none"/>
+   <path d="M30 30l16 12-16 12" stroke="${CL}" stroke-width="2" fill="none"/>`);}
+// Splitter / tee: one in, branches out
+function gSplit(){return svg('0 0 88 84',
+  `<circle cx="44" cy="42" r="30" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M20 42h24" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M44 42l24-16M44 42l24 16" stroke="${AC}" stroke-width="2.2" fill="none"/>
+   <circle cx="44" cy="42" r="4" fill="${CL}"/>`);}
+// Heat exchanger: classic circle with two zig internal (TEMA-style shell hint)
+function gHeater(){return svg('0 0 92 72',
+  `<circle cx="46" cy="36" r="28" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M22 36h8l4 -12 8 24 8 -24 8 24 4 -12h8" stroke="${AC}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`);}
+// Pump: circle with impeller triangle and discharge tangent (centrifugal pump)
+function gPump(){return svg('0 0 84 72',
+  `<circle cx="38" cy="40" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M38 14v26l22 10" stroke="${CL}" stroke-width="2" fill="none"/>
+   <path d="M38 40l16 -8 0 16z" fill="${CL}" opacity="0.85"/>`);}
+// Flash drum: vertical pressure vessel with rounded heads + liquid level
+function gFlash(){return svg('0 0 84 96',
+  `<path d="M22 18 a20 14 0 0 1 40 0 V78 a20 14 0 0 1 -40 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M22 60 a20 8 0 0 0 40 0" stroke="${CL}" stroke-width="1.8" fill="none"/>
+   <path d="M26 66h32M26 71h32" stroke="${CL}" stroke-width="1.3" fill="none" opacity="0.6"/>
+   <ellipse cx="42" cy="60" rx="20" ry="8" fill="${CL}" opacity="0.12"/>`);}
+// Distillation column: tall tower with trays + rounded heads
+function gColumn(){return svg('0 0 78 150',
+  `<path d="M14 22 a25 12 0 0 1 50 0 V128 a25 12 0 0 1 -50 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   ${[40,56,72,88,104].map(y=>`<path d="M16 ${y}h46" stroke="${CL}" stroke-width="1.5" fill="none"/>`).join('')}
+   <path d="M14 22 a25 12 0 0 1 50 0" stroke="${SY}" stroke-width="1.4" fill="none" opacity="0.5"/>`);}
+// Component separator / generic vessel with internal split line
+function gSep(){return svg('0 0 84 96',
+  `<path d="M20 16 a22 10 0 0 1 44 0 V80 a22 10 0 0 1 -44 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M20 48h44" stroke="${AC}" stroke-width="1.8" fill="none"/>
+   <path d="M30 34h24M30 62h24" stroke="${SY}" stroke-width="1.2" fill="none" opacity="0.5"/>`);}
+// Reactor: vessel with stir/coil and reaction hint
+function gReactor(){return svg('0 0 90 96',
+  `<rect x="20" y="14" width="50" height="68" rx="22" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M32 60c4 -6 8 0 12 -6s8 0 12 -6" stroke="${AC}" stroke-width="2.2" fill="none"/>
+   <circle cx="38" cy="36" r="3" fill="${CL}"/><circle cx="54" cy="42" r="3" fill="${AC}"/>
+   <circle cx="46" cy="30" r="2.4" fill="${CL}" opacity="0.7"/>`);}
 
 // ============================================================
 //  STATE
@@ -494,7 +584,7 @@ function defaultSpec(type){
     case 'pump': return {Pout:5};
     case 'splitter': return {frac:0.5};
     case 'flash': return {T:70, P:1};
-    case 'column': return {N:15, NF:8, R:2.0, D:50, P:1};
+    case 'column': return {N:15, NF:8, R:2.0, D:50, P:1, sideFrac:0.1};
     case 'compsep': return {target:COMP_LIST[0], recovery:0.95};
     case 'reactor': return {key:COMP_LIST[0], conv:0.8, prod:COMP_LIST[1]};
     default: return {};
@@ -568,11 +658,27 @@ function renderNode(id){
     makeDraggable(el,n);
   }
   el.style.left=n.x+'px'; el.style.top=n.y+'px';
-  el.innerHTML=`<div class="glyph">${d.glyph()}</div><div class="nm">${n.name}</div><div class="ty">${d.name}</div>`;
-  // ports
-  if(d.in>0){const p=document.createElement('div');p.className='port in';p.dataset.node=id;p.dataset.dir='in';el.appendChild(p);portHooks(p);}
-  if(d.out>0){const p=document.createElement('div');p.className='port out';p.dataset.node=id;p.dataset.dir='out';el.appendChild(p);portHooks(p);}
+  el.style.width=d.w+'px'; el.style.height=d.h+'px';
+  let html=`<div class="shape">${d.glyph()}</div><div class="nm">${n.name}<span class="ty">${d.name}</span></div>`;
+  // named ports around the perimeter
+  for(const p of d.ports){
+    const off=portOffset(d,p); // {x,y} in px relative to node box
+    html+=`<div class="port ${p.dir}" data-node="${id}" data-port="${p.id}" data-dir="${p.dir}" title="${p.label}" style="left:${off.x}px;top:${off.y}px"></div>`;
+  }
+  el.innerHTML=html;
+  el.querySelectorAll('.port').forEach(portHooks);
   el.addEventListener('mousedown',ev=>{if(!ev.target.classList.contains('port'))selectNode(id);});
+}
+// pixel offset of a port within its node box (CSS left/top, port is translate(-50%,-50%))
+function portOffset(d,p){
+  const W=d.w,H=d.h;
+  switch(p.side){
+    case 'left':   return {x:0,   y:H*p.pos};
+    case 'right':  return {x:W,   y:H*p.pos};
+    case 'top':    return {x:W*p.pos, y:0};
+    case 'bottom': return {x:W*p.pos, y:H};
+  }
+  return {x:W/2,y:H/2};
 }
 function makeDraggable(el,n){
   let sx,sy,ox,oy,moving=false,changed=false;
@@ -598,54 +704,65 @@ function makeDraggable(el,n){
 // ============================================================
 //  WIRING  (draw.io-style: drag a port, preview follows, snap to target)
 // ============================================================
-let pending=null; // {node,dir}
+let pending=null; // {node,port,dir}
 function portHooks(p){
   p.addEventListener('mousedown',e=>{
     e.stopPropagation();
     if(armedType)return;
-    pending={node:p.dataset.node,dir:p.dataset.dir};
+    pending={node:p.dataset.node,port:p.dataset.port,dir:p.dataset.dir};
     let lastTgt=null;
     const highlight=ev=>{
-      // find the port under the cursor (or nearest port of a hovered node) to snap to
       clearTargets();
       const el=document.elementFromPoint(ev.clientX,ev.clientY);
       let tgtPort=null;
       if(el&&el.classList.contains('port')) tgtPort=el;
-      else { // hovering a node body? snap to its compatible port
+      else { // hovering a node body? snap to its nearest free compatible port
         const nodeEl=el&&el.closest&&el.closest('.node');
         if(nodeEl&&nodeEl.id!==pending.node){
-          const want=pending.dir==='out'?'in':'out';
-          tgtPort=nodeEl.querySelector('.port.'+want);
+          tgtPort=nearestFreePort(nodeEl, pending.dir==='out'?'in':'out', ev);
           if(tgtPort)nodeEl.classList.add('wire-target');
         }
       }
       if(tgtPort){
-        const valid=validConnection(pending,{node:tgtPort.dataset.node,dir:tgtPort.dataset.dir});
-        if(valid){tgtPort.classList.add('tgt');lastTgt=tgtPort;}
+        const cand={node:tgtPort.dataset.node,port:tgtPort.dataset.port,dir:tgtPort.dataset.dir};
+        if(validConnection(pending,cand)){tgtPort.classList.add('tgt');lastTgt=cand;}
         else lastTgt=null;
       } else lastTgt=null;
       drawWires(ev);
     };
     const up=ev=>{
       document.removeEventListener('mousemove',highlight);document.removeEventListener('mouseup',up);
-      let tgtPort=lastTgt;
-      if(!tgtPort){ // last-chance: direct hit test
+      let cand=lastTgt;
+      if(!cand){
         const el=document.elementFromPoint(ev.clientX,ev.clientY);
-        if(el&&el.classList.contains('port'))tgtPort=el;
+        if(el&&el.classList.contains('port'))cand={node:el.dataset.node,port:el.dataset.port,dir:el.dataset.dir};
       }
-      if(tgtPort){
-        const b={node:tgtPort.dataset.node,dir:tgtPort.dataset.dir};
-        if(validConnection(pending,b)){
-          const from=pending.dir==='out'?pending.node:b.node;
-          const to=pending.dir==='out'?b.node:pending.node;
-          pushHistory();
-          addEdge(from,to);
-        }
+      if(cand&&validConnection(pending,cand)){
+        const a=pending,b=cand;
+        const from=a.dir==='out'?a:b, to=a.dir==='out'?b:a;
+        pushHistory();
+        addEdge(from.node,from.port,to.node,to.port);
       }
       pending=null; clearTargets(); drawWires();
     };
     document.addEventListener('mousemove',highlight);document.addEventListener('mouseup',up);
   });
+}
+// pick the free port (matching dir) on a node nearest the cursor
+function nearestFreePort(nodeEl,wantDir,ev){
+  const ports=[...nodeEl.querySelectorAll('.port.'+wantDir)];
+  let best=null,bestD=Infinity;
+  for(const pe of ports){
+    if(portInUse(pe.dataset.node,pe.dataset.port,wantDir))continue;
+    const r=pe.getBoundingClientRect();
+    const d=(r.left+r.width/2-ev.clientX)**2+(r.top+r.height/2-ev.clientY)**2;
+    if(d<bestD){bestD=d;best=pe;}
+  }
+  return best;
+}
+function portInUse(node,port,dir){
+  if(dir==='in') return Object.values(edges).some(e=>e.to===node&&e.toPort===port);
+  return Object.values(edges).some(e=>e.from===node&&e.fromPort===port);
 }
 function clearTargets(){
   document.querySelectorAll('.port.tgt').forEach(p=>p.classList.remove('tgt'));
@@ -654,41 +771,105 @@ function clearTargets(){
 function validConnection(a,b){
   if(!a||!b)return false;
   if(a.node===b.node)return false;
-  if(a.dir===b.dir)return false;            // must be out->in
-  const from=a.dir==='out'?a.node:b.node;
-  const to=a.dir==='out'?b.node:a.node;
-  // capacity check
-  const outU=Object.values(edges).filter(e=>e.from===from).length;
-  const inU=Object.values(edges).filter(e=>e.to===to).length;
-  if(outU>=UNIT_DEFS[nodes[from].type].out)return false;
-  if(inU>=UNIT_DEFS[nodes[to].type].in)return false;
-  // no duplicate edge
-  if(Object.values(edges).some(e=>e.from===from&&e.to===to))return false;
+  if(a.dir===b.dir)return false;            // must be out -> in
+  const out=a.dir==='out'?a:b, inp=a.dir==='out'?b:a;
+  // each port carries one stream
+  if(portInUse(out.node,out.port,'out'))return false;
+  if(portInUse(inp.node,inp.port,'in'))return false;
+  // no exact duplicate
+  if(Object.values(edges).some(e=>e.from===out.node&&e.fromPort===out.port&&e.to===inp.node&&e.toPort===inp.port))return false;
   return true;
 }
-function addEdge(from,to){
-  // capacity check (defensive; validConnection already gates the UI)
-  const outU=Object.values(edges).filter(e=>e.from===from).length;
-  const inU=Object.values(edges).filter(e=>e.to===to).length;
-  if(outU>=UNIT_DEFS[nodes[from].type].out){toast('Outlet ports full on '+nodes[from].name);return;}
-  if(inU>=UNIT_DEFS[nodes[to].type].in){toast('Inlet ports full on '+nodes[to].name);return;}
+function addEdge(from,fromPort,to,toPort){
+  if(portInUse(from,fromPort,'out')){toast('That outlet is already connected');return;}
+  if(portInUse(to,toPort,'in')){toast('That inlet is already connected');return;}
   const id='e'+(eid++);
-  edges[id]={id,from,to,name:'S'+(eid),solved:null,waypoints:[]};
+  edges[id]={id,from,fromPort,to,toPort,name:'S'+(eid),solved:null,waypoints:[]};
   selectEdge(id);
-  drawWires(); status('Connected '+nodes[from].name+' → '+nodes[to].name);
+  drawWires();
+  const fl=portDef(nodes[from].type,fromPort).label, tl=portDef(nodes[to].type,toPort).label;
+  status(`Connected ${nodes[from].name} (${fl}) → ${nodes[to].name} (${tl})`);
 }
-function portXY(id,dir){
-  const n=nodes[id]; if(!n)return{x:0,y:0};
-  const el=document.getElementById(id); const w=el?el.offsetWidth:104; const h=el?el.offsetHeight:64;
-  return dir==='out'?{x:n.x+w,y:n.y+h/2}:{x:n.x,y:n.y+h/2};
+// Absolute canvas coords of a specific port, plus the outward normal direction.
+function portXY(nodeId,portId){
+  const n=nodes[nodeId]; if(!n)return{x:0,y:0,nx:1,ny:0};
+  const d=UNIT_DEFS[n.type]; const p=portDef(n.type,portId)||d.ports[0];
+  const off=portOffset(d,p);
+  const nrm={left:[-1,0],right:[1,0],top:[0,-1],bottom:[0,1]}[p.side]||[1,0];
+  return {x:n.x+off.x, y:n.y+off.y, nx:nrm[0], ny:nrm[1], side:p.side};
 }
 
 let ROUTE='curve';     // 'curve' | 'ortho' | 'straight'
 
-// Build the full list of points an edge passes through: outlet, waypoints, inlet.
+// Build the list of points an edge passes through: outlet, waypoints, inlet.
 function edgePoints(e){
-  const a=portXY(e.from,'out'), b=portXY(e.to,'in');
+  const a=portXY(e.from,e.fromPort), b=portXY(e.to,e.toPort);
   return [a, ...(e.waypoints||[]), b];
+}
+
+// --- obstacle data: padded bounding boxes of every block ---
+function nodeRects(exclude){
+  const pad=10, out=[];
+  for(const id in nodes){
+    if(exclude&&exclude.includes(id))continue;
+    const n=nodes[id], d=UNIT_DEFS[n.type];
+    out.push({x1:n.x-pad, y1:n.y-pad, x2:n.x+d.w+pad, y2:n.y+d.h+pad});
+  }
+  return out;
+}
+// does an axis-aligned segment p->q overlap rectangle r?
+function segHitsRect(p,q,r){
+  const minx=Math.min(p.x,q.x),maxx=Math.max(p.x,q.x);
+  const miny=Math.min(p.y,q.y),maxy=Math.max(p.y,q.y);
+  if(maxx<r.x1||minx>r.x2||maxy<r.y1||miny>r.y2)return false;
+  return true;
+}
+function polyCost(pts,rects){
+  let hits=0, len=0; const bends=Math.max(0,pts.length-2);
+  for(let i=0;i<pts.length-1;i++){
+    len+=Math.abs(pts[i+1].x-pts[i].x)+Math.abs(pts[i+1].y-pts[i].y);
+    for(const r of rects) if(segHitsRect(pts[i],pts[i+1],r)) hits++;
+  }
+  return hits*10000 + bends*40 + len; // crossings dominate, then bends, then length
+}
+// Obstacle-aware orthogonal point list from A (with port normal) to B.
+function orthoRoute(A,B,exclude){
+  const stub=20;
+  const a={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
+  const b={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
+  const rects=nodeRects(exclude);
+  const cand=[];
+  cand.push([A,a,{x:b.x,y:a.y},b,B]);                       // HV elbow
+  cand.push([A,a,{x:a.x,y:b.y},b,B]);                       // VH elbow
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  cand.push([A,a,{x:mx,y:a.y},{x:mx,y:b.y},b,B]);           // mid vertical channel
+  cand.push([A,a,{x:a.x,y:my},{x:b.x,y:my},b,B]);           // mid horizontal channel
+  let top=Infinity,bot=-Infinity;
+  for(const r of rects){top=Math.min(top,r.y1);bot=Math.max(bot,r.y2);}
+  if(isFinite(top)){                                        // detour over / under the block band
+    cand.push([A,a,{x:a.x,y:top-24},{x:b.x,y:top-24},b,B]);
+    cand.push([A,a,{x:a.x,y:bot+24},{x:b.x,y:bot+24},b,B]);
+  }
+  let best=null,bestC=Infinity;
+  for(const c of cand){
+    const clean=dedupeColinear(c);
+    const cost=polyCost(clean,rects);
+    if(cost<bestC){bestC=cost;best=clean;}
+  }
+  return best||[A,B];
+}
+function dedupeColinear(pts){
+  const out=[pts[0]];
+  for(let i=1;i<pts.length-1;i++){
+    const p=out[out.length-1], c=pts[i], n=pts[i+1];
+    const colinH=Math.abs(p.y-c.y)<0.5&&Math.abs(c.y-n.y)<0.5;
+    const colinV=Math.abs(p.x-c.x)<0.5&&Math.abs(c.x-n.x)<0.5;
+    if(colinH||colinV)continue;
+    if(Math.abs(p.x-c.x)<0.5&&Math.abs(p.y-c.y)<0.5)continue;
+    out.push(c);
+  }
+  out.push(pts[pts.length-1]);
+  return out;
 }
 // Geometric midpoint measured along the polyline through all points — so the
 // stream label tracks bends instead of sitting on the straight-line midpoint.
@@ -709,43 +890,89 @@ function polylineMidpoint(pts){
   }
   return pts[pts.length-1];
 }
-// Build an SVG path string through points according to the routing style.
-function buildPath(pts){
+// Return the final ordered point list actually rendered for an edge (so labels
+// and hit-testing match the drawn route, including auto-ortho detours).
+function routePoints(e){
+  const pts=edgePoints(e);
+  if(ROUTE!=='ortho')return pts;
+  const A=pts[0],B=pts[pts.length-1],manual=pts.slice(1,-1);
+  if(manual.length===0){
+    const excl=[e.from,e.to];
+    return orthoRoute(A,B,excl);
+  }
+  const stub=18;
+  const start={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
+  const end={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
+  const seq=[A,start,...manual,end,B];
+  let chain=[seq[0]];
+  for(let i=1;i<seq.length;i++){
+    const p0=seq[i-1],p1=seq[i];
+    if(i===1||i===seq.length-1){chain.push(p1);}
+    else { const mx=(p0.x+p1.x)/2; chain.push({x:mx,y:p0.y},{x:mx,y:p1.y},p1); }
+  }
+  return dedupeColinear(chain);
+}
+
+// Build an SVG path through points. The first and last points may carry a
+// normal (nx,ny) from their port side, so the path leaves/enters along it.
+// `edge` (optional) lets ortho routing exclude the two connected blocks as
+// obstacles and auto-route around the rest.
+function buildPath(pts,edge){
   if(pts.length<2)return '';
+  const A=pts[0], B=pts[pts.length-1];
   if(ROUTE==='straight'){
     return 'M'+pts.map(p=>`${p.x},${p.y}`).join(' L');
   }
   if(ROUTE==='ortho'){
-    // right-angle elbows between consecutive points (horizontal-first)
-    let d=`M${pts[0].x},${pts[0].y}`;
-    for(let i=1;i<pts.length;i++){
-      const p0=pts[i-1], p1=pts[i];
-      const midX=(p0.x+p1.x)/2;
-      d+=` L${midX},${p0.y} L${midX},${p1.y} L${p1.x},${p1.y}`;
+    let chain;
+    if(edge){ chain=routePoints(edge); }
+    else {
+      // no edge context (e.g. preview): simple normal-stub elbow
+      const stub=18, manual=pts.slice(1,-1);
+      const start={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
+      const end={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
+      const seq=[A,start,...manual,end,B];
+      chain=[seq[0]];
+      for(let i=1;i<seq.length;i++){
+        const p0=seq[i-1],p1=seq[i];
+        if(i===1||i===seq.length-1){chain.push(p1);}
+        else { const mx=(p0.x+p1.x)/2; chain.push({x:mx,y:p0.y},{x:mx,y:p1.y},p1); }
+      }
+      chain=dedupeColinear(chain);
     }
-    return d;
+    return 'M'+chain.map(p=>`${p.x},${p.y}`).join(' L');
   }
-  // smooth curve: cubic through points, tangents biased horizontally near ports
+  // smooth cubic. Endpoint tangents follow the port normal; interior waypoints
+  // use Catmull-Rom. Control-handle length scales with span for a natural bend.
+  const span=Math.hypot(B.x-A.x,B.y-A.y);
+  const k=Math.max(36,span*0.42);
   if(pts.length===2){
-    const a=pts[0],b=pts[1];const dx=Math.max(40,Math.abs(b.x-a.x)*0.5);
-    return `M${a.x},${a.y} C${a.x+dx},${a.y} ${b.x-dx},${b.y} ${b.x},${b.y}`;
+    const c1={x:A.x+(A.nx||0)*k, y:A.y+(A.ny||0)*k};
+    const c2={x:B.x+(B.nx||0)*k, y:B.y+(B.ny||0)*k};
+    if(!A.nx&&!A.ny){c1.x=A.x+Math.max(40,Math.abs(B.x-A.x)*0.5);c1.y=A.y;}
+    if(!B.nx&&!B.ny){c2.x=B.x-Math.max(40,Math.abs(B.x-A.x)*0.5);c2.y=B.y;}
+    return `M${A.x},${A.y} C${c1.x},${c1.y} ${c2.x},${c2.y} ${B.x},${B.y}`;
   }
-  // multi-point: Catmull-Rom -> Bézier for a smooth polyline through waypoints
   let d=`M${pts[0].x},${pts[0].y}`;
   for(let i=0;i<pts.length-1;i++){
-    const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
-    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
-    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
-    d+=` C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+    const p1=pts[i], p2=pts[i+1];
+    let c1,c2;
+    if(i===0){ c1={x:p1.x+(p1.nx||0)*k*0.6||p1.x, y:p1.y+(p1.ny||0)*k*0.6||p1.y};
+               if(!p1.nx&&!p1.ny)c1={x:p1.x+(p2.x-p1.x)/3,y:p1.y};
+    } else { const p0=pts[i-1]; c1={x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6}; }
+    if(i===pts.length-2){ c2={x:p2.x+(p2.nx||0)*k*0.6, y:p2.y+(p2.ny||0)*k*0.6};
+               if(!p2.nx&&!p2.ny)c2={x:p2.x-(p2.x-p1.x)/3,y:p2.y};
+    } else { const p3=pts[i+2]; c2={x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6}; }
+    d+=` C${c1.x},${c1.y} ${c2.x},${c2.y} ${p2.x},${p2.y}`;
   }
   return d;
 }
 
 function drawWires(mouseEv){
-  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp,.waypoint')].forEach(el=>el.remove());
+  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp,.waypoint,.endpoint')].forEach(el=>el.remove());
   for(const e of Object.values(edges)){
     const pts=edgePoints(e);
-    const dPath=buildPath(pts);
+    const dPath=buildPath(pts,e);
     const a=pts[0], b=pts[pts.length-1];
     let cls='wire'; let mk='url(#arrow)';
     if(e.solved){ if(e.solved.phase==='Vapor'){cls='wire hot';mk='url(#arrowH)';}
@@ -758,8 +985,8 @@ function drawWires(mouseEv){
     wires.appendChild(hit);
     const path=mk0('path',{class:cls+(isSel?' sel':''),d:dPath,'marker-end':mk});
     wires.appendChild(path);
-    // label at the true midpoint of the routed polyline (follows bends)
-    const mid=polylineMidpoint(pts);
+    // label at the true midpoint of the routed polyline (follows bends/detours)
+    const mid=polylineMidpoint(routePoints(e));
     const txt=e.name + (e.solved?` · ${e.solved.flow.toFixed(1)}`:'');
     const lab=mk0('text',{class:'wire-label',x:mid.x,y:mid.y-7,'text-anchor':'middle'});
     lab.textContent=txt;
@@ -767,31 +994,52 @@ function drawWires(mouseEv){
     lab.style.pointerEvents='all';
     lab.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e.id);});
     wires.appendChild(lab);
-    // when selected, show draggable waypoint handles + ghost add-handles on each segment
+    // when selected, show endpoint re-attach handles + waypoint handles + ghost adders
     if(isSel){
+      // endpoint handles (square) — drag to re-attach to a different port
+      const epA=mk0('rect',{class:'endpoint',x:a.x-6,y:a.y-6,width:12,height:12,rx:2});
+      epA.addEventListener('mousedown',ev=>startEndpointDrag(ev,e,'from'));
+      wires.appendChild(epA);
+      const epB=mk0('rect',{class:'endpoint',x:b.x-6,y:b.y-6,width:12,height:12,rx:2});
+      epB.addEventListener('mousedown',ev=>startEndpointDrag(ev,e,'to'));
+      wires.appendChild(epB);
+      // waypoint handles (round)
       (e.waypoints||[]).forEach((wp,idx)=>{
         const h=mk0('circle',{class:'waypoint',cx:wp.x,cy:wp.y,r:6});
         h.addEventListener('mousedown',ev=>startWaypointDrag(ev,e,idx));
         h.addEventListener('dblclick',ev=>{ev.stopPropagation();pushHistory();e.waypoints.splice(idx,1);drawWires();renderEdgeInspector();});
         wires.appendChild(h);
       });
-      // ghost midpoints to add new bends
-      for(let i=0;i<pts.length-1;i++){
-        const gx=(pts[i].x+pts[i+1].x)/2, gy=(pts[i].y+pts[i+1].y)/2;
-        const g=mk0('circle',{class:'waypoint ghost',cx:gx,cy:gy,r:5});
-        g.addEventListener('mousedown',ev=>{ev.stopPropagation();pushHistory();
-          e.waypoints.splice(i,0,{x:gx,y:gy}); drawWires(); startWaypointDrag(ev,e,i,true);});
-        wires.appendChild(g);
+      // ghost midpoints to add new bends (skip in auto-ortho so the auto route stays clean)
+      if(!(ROUTE==='ortho'&&(e.waypoints||[]).length===0)){
+        for(let i=0;i<pts.length-1;i++){
+          const gx=(pts[i].x+pts[i+1].x)/2, gy=(pts[i].y+pts[i+1].y)/2;
+          const g=mk0('circle',{class:'waypoint ghost',cx:gx,cy:gy,r:5});
+          g.addEventListener('mousedown',ev=>{ev.stopPropagation();pushHistory();
+            e.waypoints.splice(i,0,{x:gx,y:gy}); drawWires(); startWaypointDrag(ev,e,i,true);});
+          wires.appendChild(g);
+        }
       }
     }
   }
   if(pending&&mouseEv){
-    const a=portXY(pending.node,pending.dir);
+    const a=pendingAnchor();
     const r=cwrap.getBoundingClientRect();
     const mx=mouseEv.clientX-r.left, my=mouseEv.clientY-r.top;
-    const tmp=mk0('path',{class:'wire tmp',d:`M${a.x},${a.y} L${mx},${my}`,'stroke-dasharray':'5 4'});
+    const k=Math.max(30,Math.hypot(mx-a.x,my-a.y)*0.4);
+    const c1x=a.x+(a.nx||0)*k, c1y=a.y+(a.ny||0)*k;
+    const tmp=mk0('path',{class:'wire tmp',d:`M${a.x},${a.y} C${c1x},${c1y} ${mx},${my} ${mx},${my}`,'stroke-dasharray':'5 4'});
     wires.appendChild(tmp);
   }
+}
+// anchor point for the live preview: a dragged-from port, or the fixed end of a
+// re-attaching edge.
+function pendingAnchor(){
+  if(pending.reattach){
+    const e=edges[pending.edge];
+    return pending.end==='to' ? portXY(e.from,e.fromPort) : portXY(e.to,e.toPort);
+  }
+  return portXY(pending.node,pending.port);
 }
 
 // Add a waypoint at the cursor position on an edge (from dblclick on the wire).
@@ -821,6 +1069,60 @@ function startWaypointDrag(ev,e,idx,fresh){
     e.waypoints[idx]={x:m.clientX-r.left, y:m.clientY-r.top}; drawWires(); };
   const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);renderEdgeInspector();};
   document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+
+// Drag an edge endpoint to re-attach it to a different port (draw.io rewire).
+// `end` is 'from' or 'to'. We snap to free, compatible ports while dragging.
+function startEndpointDrag(ev,e,end){
+  ev.stopPropagation(); ev.preventDefault();
+  const wantDir = end==='from' ? 'out' : 'in';
+  pending={reattach:true, edge:e.id, end}; // drives the live preview anchor
+  let lastCand=null, pushed=false;
+  const highlight=m=>{
+    clearTargets();
+    const el=document.elementFromPoint(m.clientX,m.clientY);
+    let tgtPort=null;
+    if(el&&el.classList.contains('port')&&el.dataset.dir===wantDir) tgtPort=el;
+    else {
+      const nodeEl=el&&el.closest&&el.closest('.node');
+      if(nodeEl){ tgtPort=nearestFreePort(nodeEl,wantDir,m); if(tgtPort)nodeEl.classList.add('wire-target'); }
+    }
+    if(tgtPort){
+      const cand={node:tgtPort.dataset.node,port:tgtPort.dataset.port,dir:wantDir};
+      if(validReattach(e,end,cand)){tgtPort.classList.add('tgt');lastCand=cand;}
+      else lastCand=null;
+    } else lastCand=null;
+    drawWires(m);
+  };
+  const up=()=>{
+    document.removeEventListener('mousemove',highlight);document.removeEventListener('mouseup',up);
+    if(lastCand){
+      if(!pushed){pushHistory();pushed=true;}
+      if(end==='from'){e.from=lastCand.node; e.fromPort=lastCand.port;}
+      else{e.to=lastCand.node; e.toPort=lastCand.port;}
+      e.solved=null;
+      status('Stream re-attached to '+nodes[lastCand.node].name+' ('+portDef(nodes[lastCand.node].type,lastCand.port).label+')');
+    }
+    pending=null; clearTargets(); drawWires();
+  };
+  document.addEventListener('mousemove',highlight);document.addEventListener('mouseup',up);
+}
+// validate a re-attach: target port must be free (unless it's the same end's
+// current port), correct direction, and not create a self-loop or duplicate.
+function validReattach(e,end,cand){
+  const from = end==='from' ? cand.node : e.from;
+  const fromPort = end==='from' ? cand.port : e.fromPort;
+  const to = end==='to' ? cand.node : e.to;
+  const toPort = end==='to' ? cand.port : e.toPort;
+  if(from===to)return false;
+  // the port being moved onto must be free, ignoring this very edge
+  const busy = cand.dir==='out'
+    ? Object.values(edges).some(x=>x!==e&&x.from===cand.node&&x.fromPort===cand.port)
+    : Object.values(edges).some(x=>x!==e&&x.to===cand.node&&x.toPort===cand.port);
+  if(busy)return false;
+  // no duplicate of another edge
+  if(Object.values(edges).some(x=>x!==e&&x.from===from&&x.fromPort===fromPort&&x.to===to&&x.toPort===toPort))return false;
+  return true;
 }
 function mk0(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 
@@ -917,8 +1219,9 @@ function specFields(n){
         <div class="field"><label>Feed stage</label><input id="s_NF" value="${s.NF}"></div></div>
         <div class="row2"><div class="field"><label>Reflux ratio R</label><input id="s_R" value="${s.R}"></div>
         <div class="field"><label>Distillate D (kmol/h)</label><input id="s_D" value="${s.D}"></div></div>
-        <div class="field"><label>Pressure (bar)</label><input id="s_P" value="${s.P}"></div>
-        <div class="hint">Rigorous MESH column (stage-by-stage mass balance via Thomas algorithm + bubble-point T updates). Stage 1 = condenser. Outlet 1 = distillate, outlet 2 = bottoms.</div>`;
+        <div class="row2"><div class="field"><label>Pressure (bar)</label><input id="s_P" value="${s.P}"></div>
+        <div class="field"><label>Side draw frac.</label><input id="s_sideFrac" value="${s.sideFrac!=null?s.sideFrac:0.1}"></div></div>
+        <div class="hint">Rigorous MESH column. Ports: <b>Distillate</b> (top), <b>Bottoms</b> (base), and an optional <b>Side draw</b> (right) that pulls the set fraction of the bottoms liquid. Connect only the ports you need.</div>`;
     case 'compsep':{
       let opts=COMP_LIST.map(c=>`<option${s.target===c?' selected':''}>${c}</option>`).join('');
       return `<div class="field"><label>Key component</label><select id="s_target">${opts}</select></div>
@@ -964,7 +1267,7 @@ function collectSpec(n){
   if(n.type==='pump')s.Pout=+g('s_Pout');
   if(n.type==='splitter')s.frac=Math.max(0,Math.min(1,+g('s_frac')));
   if(n.type==='flash'){s.T=+g('s_T');s.P=+g('s_P');}
-  if(n.type==='column'){s.N=Math.max(3,Math.round(+g('s_N')));s.NF=Math.round(+g('s_NF'));s.R=Math.max(0.01,+g('s_R'));s.D=Math.max(0.01,+g('s_D'));s.P=+g('s_P');}
+  if(n.type==='column'){s.N=Math.max(3,Math.round(+g('s_N')));s.NF=Math.round(+g('s_NF'));s.R=Math.max(0.01,+g('s_R'));s.D=Math.max(0.01,+g('s_D'));s.P=+g('s_P');if(g('s_sideFrac')!==null)s.sideFrac=Math.max(0,Math.min(0.9,+g('s_sideFrac')));}
   if(n.type==='compsep'){s.target=g('s_target');s.recovery=Math.max(0,Math.min(1,+g('s_recovery')));}
   if(n.type==='reactor'){s.key=g('s_key');s.conv=Math.max(0,Math.min(1,+g('s_conv')));s.prod=g('s_prod');}
 }
@@ -1126,23 +1429,23 @@ function topoOrder(){
 
 function solveUnit(n,ins,outs){
   const s=n.spec;
-  const setOut=(edge,st)=>{edge.solved=streamTotals(st);};
+  // set the output stream leaving a specific named port (by port id)
+  const put=(portId,st)=>{const e=outs.find(o=>o.fromPort===portId); if(e)e.solved=streamTotals(st);};
   switch(n.type){
     case 'feed':{
       const st=emptyStream(); st.T=s.T;st.P=s.P;
       for(const c of COMP_LIST)st.comp[c]=s.comp[c];
-      st.phase=phaseOf(st); if(outs[0])setOut(outs[0],st);
+      st.phase=phaseOf(st); put('out',st);
       break;
     }
     case 'product': break;
     case 'mixer':{
-      const st=emptyStream(); let Hsum=0,molT=0,Tnum=0;
-      for(const i of ins){for(const c of COMP_LIST)st.comp[c]+=i.comp[c]; Hsum+=i.H; molT+=i.flow;}
+      const st=emptyStream(); let Hsum=0;
+      for(const i of ins){for(const c of COMP_LIST)st.comp[c]+=i.comp[c]; Hsum+=i.H;}
       st.P=ins.length?Math.min(...ins.map(i=>i.P)):1;
-      // adiabatic: solve T from enthalpy (assume liquid then check)
       st.phase='Liquid'; st.T=solveTfromH(st,Hsum);
       st.phase=phaseOf(st);
-      if(outs[0])setOut(outs[0],st);
+      put('out',st);
       break;
     }
     case 'splitter':{
@@ -1150,31 +1453,30 @@ function solveUnit(n,ins,outs){
       const a=emptyStream(),b=emptyStream();
       a.T=b.T=f.T;a.P=b.P=f.P;a.phase=b.phase=f.phase;
       for(const c of COMP_LIST){a.comp[c]=f.comp[c]*s.frac;b.comp[c]=f.comp[c]*(1-s.frac);}
-      if(outs[0])setOut(outs[0],a); if(outs[1])setOut(outs[1],b);
+      put('out1',a); put('out2',b);
       break;
     }
     case 'heater':{
       const f=ins[0]||emptyStream(); const st=emptyStream();
       for(const c of COMP_LIST)st.comp[c]=f.comp[c]; st.P=f.P;
       if(s.mode==='T'){ st.T=s.T; st.phase=phaseOf(st);
-        streamTotals(st); n._duty=(st.H-f.H)/3600; /*kW*/ }
-      else { const Q=s.duty*3600; // kJ/h
+        streamTotals(st); n._duty=(st.H-f.H)/3600; }
+      else { const Q=s.duty*3600;
         st.phase=f.phase; st.T=solveTfromH(st,f.H+Q); st.phase=phaseOf(st); n._duty=s.duty; }
-      if(outs[0])setOut(outs[0],st);
+      put('out',st);
       break;
     }
     case 'pump':{
       const f=ins[0]||emptyStream(); const st=emptyStream();
       for(const c of COMP_LIST)st.comp[c]=f.comp[c]; st.T=f.T;st.P=s.Pout;st.phase='Liquid';
-      // ideal pump work W = V*ΔP ; rough using mass & density~1000
-      n._work=Math.max(0,(s.Pout-f.P))*1e5*(f.massFlow/1000/1000)/3600/1000; // kW rough
-      if(outs[0])setOut(outs[0],st);
+      n._work=Math.max(0,(s.Pout-f.P))*1e5*(f.massFlow/1000/1000)/3600/1000;
+      put('out',st);
       break;
     }
     case 'flash':{
       const f=ins[0]||emptyStream();
       const {vapor,liquid}=flashVLE(f,s.T,s.P);
-      if(outs[0])setOut(outs[0],vapor); if(outs[1])setOut(outs[1],liquid);
+      put('vap',vapor); put('liq',liquid);
       break;
     }
     case 'column':{
@@ -1182,7 +1484,18 @@ function solveUnit(n,ins,outs){
       const N=Math.max(3,Math.round(s.N)), NF=Math.max(1,Math.min(N-2,Math.round(s.NF)));
       const res=solveDistillation(f,N,NF,s.R,s.D,s.P);
       n._colConverged=res.converged; n._Tprofile=res.Tprofile;
-      if(outs[0])setOut(outs[0],res.dist); if(outs[1])setOut(outs[1],res.bot);
+      put('dist',res.dist); put('btms',res.bot);
+      // side draw (optional): if connected, draw a fraction of liquid at the
+      // feed-stage composition. Simple model: pull `sideFrac` of bottoms flow.
+      if(outs.some(o=>o.fromPort==='side')){
+        const sd=emptyStream(); const frac=s.sideFrac!=null?s.sideFrac:0.1;
+        for(const c of COMP_LIST)sd.comp[c]=res.bot.comp[c]*frac;
+        sd.T=(res.Tprofile[Math.floor(res.Tprofile.length/2)]||f.T); sd.P=s.P; sd.phase='Liquid';
+        // remove the side draw from bottoms to conserve mass
+        const bo=emptyStream(); for(const c of COMP_LIST)bo.comp[c]=res.bot.comp[c]*(1-frac);
+        bo.T=res.bot.T;bo.P=res.bot.P;bo.phase=res.bot.phase;
+        put('btms',bo); put('side',sd);
+      }
       break;
     }
     case 'compsep':{
@@ -1192,7 +1505,7 @@ function solveUnit(n,ins,outs){
         if(c===s.target){top.comp[c]=f.comp[c]*s.recovery;bot.comp[c]=f.comp[c]*(1-s.recovery);}
         else {top.comp[c]=f.comp[c]*(1-s.recovery);bot.comp[c]=f.comp[c]*s.recovery;}
       }
-      if(outs[0])setOut(outs[0],top); if(outs[1])setOut(outs[1],bot);
+      put('top',top); put('bot',bot);
       break;
     }
     case 'reactor':{
@@ -1201,7 +1514,7 @@ function solveUnit(n,ins,outs){
       const reacted=f.comp[s.key]*s.conv;
       st.comp[s.key]-=reacted; st.comp[s.prod]=(st.comp[s.prod]||0)+reacted;
       st.T=f.T;st.P=f.P;st.phase=phaseOf(st);
-      if(outs[0])setOut(outs[0],st);
+      put('out',st);
       break;
     }
   }
@@ -1401,11 +1714,11 @@ document.getElementById('btnClear').onclick=()=>{
 document.getElementById('btnSample').onclick=()=>{
   pushHistory();
   clearAll();
-  addNode('feed',50,120);
-  addNode('heater',210,120);
-  addNode('column',370,120);
-  addNode('product',540,55);
-  addNode('product',540,195);
+  addNode('feed',40,170);
+  addNode('heater',180,170);
+  addNode('column',330,110);
+  addNode('product',470,40);
+  addNode('product',470,290);
   const ids=Object.keys(nodes);
   const feed=nodes[ids[0]]; feed.name='Feed';
   COMP_LIST.forEach(c=>feed.spec.comp[c]=0);
@@ -1413,39 +1726,40 @@ document.getElementById('btnSample').onclick=()=>{
   const ht=nodes[ids[1]];ht.name='Preheater';ht.spec.mode='T';ht.spec.T=95;
   const col=nodes[ids[2]];col.name='Column';col.spec.N=15;col.spec.NF=8;col.spec.R=2.0;col.spec.D=50;col.spec.P=1;
   nodes[ids[3]].name='Distillate';nodes[ids[4]].name='Bottoms';
-  addEdge(ids[0],ids[1]);addEdge(ids[1],ids[2]);
-  addEdge(ids[2],ids[3]);addEdge(ids[2],ids[4]);
+  addEdge(ids[0],'out',ids[1],'in');
+  addEdge(ids[1],'out',ids[2],'feed');
+  addEdge(ids[2],'dist',ids[3],'in');   // top -> distillate
+  addEdge(ids[2],'btms',ids[4],'in');   // bottom -> bottoms
   Object.values(edges).forEach((e,i)=>e.name='S'+(i+1));
   selected=null;renderInspector();drawWires();updateUndoButtons();
-  status('Example loaded · benzene/toluene distillation (15 stages) · press Solve');
+  status('Example loaded · benzene/toluene distillation · distillate leaves the top, bottoms the base · press Solve');
 };
 
 // ---------- recycle example: feed → mixer → reactor → splitter (purge + recycle) ----------
 document.getElementById('btnRecycle').onclick=()=>{
   pushHistory();
   clearAll();
-  addNode('feed',40,100);
-  addNode('mixer',210,110);
-  addNode('reactor',370,110);
-  addNode('splitter',540,110);
-  addNode('product',710,65);
+  addNode('feed',30,120);
+  addNode('mixer',180,120);
+  addNode('reactor',330,120);
+  addNode('splitter',490,120);
+  addNode('product',650,80);
   const ids=Object.keys(nodes);
   const feed=nodes[ids[0]]; feed.name='Feed';
   COMP_LIST.forEach(c=>feed.spec.comp[c]=0);
   feed.spec.comp.nHexane=100; feed.spec.T=25; feed.spec.P=5;
   nodes[ids[1]].name='Mixer';
   const rx=nodes[ids[2]];rx.name='Reactor';rx.spec.key='nHexane';rx.spec.conv=0.35;rx.spec.prod='Benzene';
-  const sp=nodes[ids[3]];sp.name='Splitter';sp.spec.frac=0.30;  // 30% to product, 70% recycled
+  const sp=nodes[ids[3]];sp.name='Splitter';sp.spec.frac=0.30;
   nodes[ids[4]].name='Product';
-  addEdge(ids[0],ids[1]);          // feed -> mixer
-  addEdge(ids[1],ids[2]);          // mixer -> reactor
-  addEdge(ids[2],ids[3]);          // reactor -> splitter
-  addEdge(ids[3],ids[4]);          // splitter out1 -> product
-  addEdge(ids[3],ids[1]);          // splitter out2 -> mixer (RECYCLE)
-  // route the recycle stream as a clean loop below the row
+  addEdge(ids[0],'out',ids[1],'in1');     // feed -> mixer inlet 1
+  addEdge(ids[1],'out',ids[2],'in');      // mixer -> reactor
+  addEdge(ids[2],'out',ids[3],'in');      // reactor -> splitter
+  addEdge(ids[3],'out1',ids[4],'in');     // splitter -> product
+  addEdge(ids[3],'out2',ids[1],'in2');    // splitter -> mixer inlet 2 (RECYCLE)
   const recyc=Object.values(edges).find(e=>e.from===ids[3]&&e.to===ids[1]);
   if(recyc){recyc.name='Recycle';
-    recyc.waypoints=[{x:585,y:230},{x:255,y:230}];}
+    recyc.waypoints=[{x:545,y:250},{x:215,y:250}];}
   Object.values(edges).forEach((e,i)=>{if(e.name[0]==='S')e.name='S'+(i+1);});
   selected=null;renderInspector();drawWires();updateUndoButtons();
   status('Recycle example loaded · reactor loop with 70% recycle · press Solve to converge the tear');
