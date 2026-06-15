@@ -92,8 +92,13 @@
   .wire{fill:none;stroke:var(--line);stroke-width:2.5;pointer-events:stroke;cursor:pointer}
   .wire.hot{stroke:var(--steam)}
   .wire.cold{stroke:var(--cool)}
+  .wire.sel{stroke-width:3.5}
   .wire-label{font-family:var(--mono);font-size:10px;fill:var(--ink)}
-  .wire-hit{stroke:transparent;stroke-width:14;fill:none;pointer-events:stroke;cursor:pointer}
+  .wire-hit{stroke:transparent;stroke-width:16;fill:none;pointer-events:stroke;cursor:pointer}
+  .waypoint{fill:var(--node);stroke:var(--steam);stroke-width:2;cursor:move;pointer-events:all}
+  .waypoint:hover{fill:var(--steam)}
+  .waypoint.ghost{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:3 3;cursor:copy;opacity:.55}
+  .waypoint.ghost:hover{opacity:1;stroke:var(--steam)}
 
   /* ---- inspector ---- */
   .inspector{
@@ -168,6 +173,13 @@
         <option value="ideal">Ideal (Raoult)</option>
       </select>
     </label>
+    <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3aa">Routing
+      <select id="routeSel" style="font-family:var(--mono);font-size:11px;background:#1c322c;color:var(--paper);border:1px solid #335048;border-radius:5px;padding:6px 8px">
+        <option value="curve">Smooth</option>
+        <option value="ortho">Right-angle</option>
+        <option value="straight">Straight</option>
+      </select>
+    </label>
     <button id="btnSample">Column Example</button>
     <button id="btnRecycle">Recycle Example</button>
     <button id="btnClear">Clear</button>
@@ -179,7 +191,7 @@
   <aside class="palette" id="palette"></aside>
 
   <div class="canvas-wrap" id="cwrap">
-    <div class="tip">Drag blocks in · drag port → port to connect · click a wire to label/delete</div>
+    <div class="tip">Drag blocks in · drag port → port to connect · click a stream then drag its handles to bend it (double-click a stream to add a bend)</div>
     <svg class="wires" id="wires">
       <defs>
         <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -529,7 +541,7 @@ function addEdge(from,to){
   if(outU>=UNIT_DEFS[nodes[from].type].out){toast('Outlet ports full on '+nodes[from].name);return;}
   if(inU>=UNIT_DEFS[nodes[to].type].in){toast('Inlet ports full on '+nodes[to].name);return;}
   const id='e'+(eid++);
-  edges[id]={id,from,to,name:'S'+(eid),solved:null};
+  edges[id]={id,from,to,name:'S'+(eid),solved:null,waypoints:[]};
   drawWires(); status('Connected '+nodes[from].name+' → '+nodes[to].name);
 }
 function portXY(id,dir){
@@ -537,26 +549,86 @@ function portXY(id,dir){
   const el=document.getElementById(id); const w=el?el.offsetWidth:104; const h=el?el.offsetHeight:64;
   return dir==='out'?{x:n.x+w,y:n.y+h/2}:{x:n.x,y:n.y+h/2};
 }
+
+let ROUTE='curve';     // 'curve' | 'ortho' | 'straight'
+
+// Build the full list of points an edge passes through: outlet, waypoints, inlet.
+function edgePoints(e){
+  const a=portXY(e.from,'out'), b=portXY(e.to,'in');
+  return [a, ...(e.waypoints||[]), b];
+}
+// Build an SVG path string through points according to the routing style.
+function buildPath(pts){
+  if(pts.length<2)return '';
+  if(ROUTE==='straight'){
+    return 'M'+pts.map(p=>`${p.x},${p.y}`).join(' L');
+  }
+  if(ROUTE==='ortho'){
+    // right-angle elbows between consecutive points (horizontal-first)
+    let d=`M${pts[0].x},${pts[0].y}`;
+    for(let i=1;i<pts.length;i++){
+      const p0=pts[i-1], p1=pts[i];
+      const midX=(p0.x+p1.x)/2;
+      d+=` L${midX},${p0.y} L${midX},${p1.y} L${p1.x},${p1.y}`;
+    }
+    return d;
+  }
+  // smooth curve: cubic through points, tangents biased horizontally near ports
+  if(pts.length===2){
+    const a=pts[0],b=pts[1];const dx=Math.max(40,Math.abs(b.x-a.x)*0.5);
+    return `M${a.x},${a.y} C${a.x+dx},${a.y} ${b.x-dx},${b.y} ${b.x},${b.y}`;
+  }
+  // multi-point: Catmull-Rom -> Bézier for a smooth polyline through waypoints
+  let d=`M${pts[0].x},${pts[0].y}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
+    const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+    const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+    d+=` C${c1x},${c1y} ${c2x},${c2y} ${p2.x},${p2.y}`;
+  }
+  return d;
+}
+
 function drawWires(mouseEv){
-  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp')].forEach(e=>e.remove());
+  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp,.waypoint')].forEach(el=>el.remove());
   for(const e of Object.values(edges)){
-    const a=portXY(e.from,'out'), b=portXY(e.to,'in');
-    const dx=Math.max(40,Math.abs(b.x-a.x)*0.5);
-    const dPath=`M${a.x},${a.y} C${a.x+dx},${a.y} ${b.x-dx},${b.y} ${b.x},${b.y}`;
+    const pts=edgePoints(e);
+    const dPath=buildPath(pts);
+    const a=pts[0], b=pts[pts.length-1];
     let cls='wire'; let mk='url(#arrow)';
     if(e.solved){ if(e.solved.phase==='Vapor'){cls='wire hot';mk='url(#arrowH)';}
       else if(e.solved.T<25){cls='wire cold';mk='url(#arrowC)';} }
+    const isSel=(selected===e.id&&selKind==='edge');
+    // fat invisible hit area: click selects, double-click adds a waypoint
     const hit=mk0('path',{class:'wire-hit',d:dPath});
     hit.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e.id);});
+    hit.addEventListener('dblclick',ev=>{ev.stopPropagation();addWaypoint(e,ev);});
     wires.appendChild(hit);
-    const path=mk0('path',{class:cls+(selected===e.id&&selKind==='edge'?'':''),d:dPath,'marker-end':mk});
-    if(selected===e.id&&selKind==='edge')path.setAttribute('stroke-width','4');
+    const path=mk0('path',{class:cls+(isSel?' sel':''),d:dPath,'marker-end':mk});
     wires.appendChild(path);
-    // label
-    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2-6;
-    const lab=mk0('text',{class:'wire-label',x:mx,y:my,'text-anchor':'middle'});
+    // label near the first segment midpoint
+    const mid=pts[Math.floor(pts.length/2)] || {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    const lx=(a.x+b.x)/2, ly=(a.y+b.y)/2-6;
+    const lab=mk0('text',{class:'wire-label',x:lx,y:ly,'text-anchor':'middle'});
     lab.textContent=e.name + (e.solved?` · ${e.solved.flow.toFixed(1)}`:'');
     wires.appendChild(lab);
+    // when selected, show draggable waypoint handles + ghost add-handles on each segment
+    if(isSel){
+      (e.waypoints||[]).forEach((wp,idx)=>{
+        const h=mk0('circle',{class:'waypoint',cx:wp.x,cy:wp.y,r:6});
+        h.addEventListener('mousedown',ev=>startWaypointDrag(ev,e,idx));
+        h.addEventListener('dblclick',ev=>{ev.stopPropagation();e.waypoints.splice(idx,1);drawWires();});
+        wires.appendChild(h);
+      });
+      // ghost midpoints to add new bends
+      for(let i=0;i<pts.length-1;i++){
+        const gx=(pts[i].x+pts[i+1].x)/2, gy=(pts[i].y+pts[i+1].y)/2;
+        const g=mk0('circle',{class:'waypoint ghost',cx:gx,cy:gy,r:5});
+        g.addEventListener('mousedown',ev=>{ev.stopPropagation();
+          e.waypoints.splice(i,0,{x:gx,y:gy}); drawWires(); startWaypointDrag(ev,e,i);});
+        wires.appendChild(g);
+      }
+    }
   }
   if(pending&&mouseEv){
     const a=portXY(pending.node,pending.dir);
@@ -565,6 +637,31 @@ function drawWires(mouseEv){
     const tmp=mk0('path',{class:'wire tmp',d:`M${a.x},${a.y} L${mx},${my}`,'stroke-dasharray':'5 4'});
     wires.appendChild(tmp);
   }
+}
+
+// Add a waypoint at the cursor position on an edge (from dblclick on the wire).
+function addWaypoint(e,ev){
+  const r=cwrap.getBoundingClientRect();
+  const x=ev.clientX-r.left, y=ev.clientY-r.top;
+  e.waypoints=e.waypoints||[];
+  // insert at the segment nearest the click so the bend lands in the right place
+  const pts=edgePoints(e); let best=0,bestD=Infinity;
+  for(let i=0;i<pts.length-1;i++){
+    const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+    const d=(mx-x)**2+(my-y)**2; if(d<bestD){bestD=d;best=i;}
+  }
+  e.waypoints.splice(best,0,{x,y});
+  selectEdge(e.id);
+  status('Bend added — drag handles to shape the stream; double-click a handle to remove it');
+}
+
+// Drag a waypoint handle.
+function startWaypointDrag(ev,e,idx){
+  ev.stopPropagation(); ev.preventDefault();
+  const r=cwrap.getBoundingClientRect();
+  const mv=m=>{ e.waypoints[idx]={x:m.clientX-r.left, y:m.clientY-r.top}; drawWires(); };
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
 }
 function mk0(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
 
@@ -699,10 +796,15 @@ function renderEdgeInspector(){
       Total = ${s.flow.toFixed(2)} kmol/h · ${s.massFlow.toFixed(1)} kg/h<br>
       Enthalpy = ${(s.H/1000).toFixed(1)} MJ/h</div></div>`;
   }
+  const nBends=(e.waypoints||[]).length;
+  const routeField=`<div class="field"><label>Stream shape</label>
+    <div class="hint" style="margin-bottom:8px">${nBends} bend${nBends===1?'':'s'}. Drag the orange handles to shape this stream; drag a dashed midpoint to add a bend; double-click a handle to remove it.</div>
+    <button class="del-btn" id="straightBtn" style="background:#eef2ef;border-color:#c3d2c9;color:var(--ink);margin-top:0">Clear bends (straighten)</button></div>`;
   ins.innerHTML=`<div class="insp-head"><div class="ti">${e.name}</div><div class="su">Process stream · ${nodes[e.from].name} → ${nodes[e.to].name}</div></div>
-    <div class="insp-body"><div class="field"><label>Stream name</label><input id="e_name" value="${e.name}"></div>${res}
+    <div class="insp-body"><div class="field"><label>Stream name</label><input id="e_name" value="${e.name}"></div>${routeField}${res}
     <button class="del-btn" id="delE">Delete stream</button></div>`;
   document.getElementById('e_name').oninput=ev=>{e.name=ev.target.value;drawWires();};
+  document.getElementById('straightBtn').onclick=()=>{e.waypoints=[];drawWires();renderEdgeInspector();};
   document.getElementById('delE').onclick=()=>{delete edges[e.id];selected=null;selKind=null;renderInspector();drawWires();};
 }
 function deleteNode(id){
@@ -1098,6 +1200,7 @@ let toastT;function toast(m){const t=document.getElementById('toast');t.textCont
 
 document.getElementById('btnRun').onclick=solve;
 document.getElementById('thermoSel').onchange=e=>{THERMO=e.target.value;status('Property method: '+e.target.options[e.target.selectedIndex].text+' · press Solve to re-run');};
+document.getElementById('routeSel').onchange=e=>{ROUTE=e.target.value;drawWires();};
 document.getElementById('btnClear').onclick=()=>{
   nodes={};edges={};nid=eid=0;selected=null;selKind=null;
   canvas.innerHTML='';drawWires();renderInspector();
