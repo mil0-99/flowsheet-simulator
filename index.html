@@ -28,40 +28,53 @@
   html,body{margin:0;height:100%;font-family:var(--sans);color:var(--ink);background:var(--paper)}
   body{display:flex;flex-direction:column;overflow:hidden}
 
-  /* ---- top bar ---- */
+  /* ---- top bar (slim title only) ---- */
   header{
-    display:flex;align-items:center;gap:18px;padding:10px 18px;
+    display:flex;align-items:baseline;gap:14px;padding:8px 18px;
     background:var(--ink);color:var(--paper);border-bottom:3px solid var(--steam);
-    z-index:30;
+    z-index:30;flex-shrink:0;
   }
-  .brand{font-family:'Fraunces',serif;font-weight:600;font-size:20px;letter-spacing:.3px;display:flex;align-items:baseline;gap:9px}
-  .brand small{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#9fb3aa;font-weight:500}
-  .topbtns{display:flex;gap:8px;margin-left:auto}
-  header button{
+  .brand{font-family:'Fraunces',serif;font-weight:600;font-size:18px;letter-spacing:.3px;display:flex;align-items:baseline;gap:9px}
+  .brand small{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#9fb3aa;font-weight:500}
+  .header-hint{font-family:var(--mono);font-size:10px;color:#7d8f88;margin-left:auto;letter-spacing:.5px}
+
+  /* ---- bottom toolbar ---- */
+  .toolbar{
+    display:flex;align-items:center;justify-content:space-between;gap:18px;padding:9px 16px;
+    background:var(--ink);border-top:3px solid var(--steam);z-index:30;flex-shrink:0;
+  }
+  .tb-group{display:flex;align-items:center;gap:8px}
+  .tb-label{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3aa}
+  .tb-label select{font-family:var(--mono);font-size:11px;background:#1c322c;color:var(--paper);border:1px solid #335048;border-radius:5px;padding:6px 8px;cursor:pointer}
+  .toolbar button{
     font-family:var(--mono);font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;
     background:#1c322c;color:var(--paper);border:1px solid #335048;padding:7px 13px;border-radius:5px;cursor:pointer;
     transition:.12s;
   }
-  header button:hover{background:#274740;border-color:#4a6b61}
-  header button.run{background:var(--steam);border-color:var(--steam);color:#fff;font-weight:600}
-  header button.run:hover{background:#a4441f}
+  .toolbar button:hover{background:#274740;border-color:#4a6b61}
+  .toolbar button.run{background:var(--steam);border-color:var(--steam);color:#fff;font-weight:600}
+  .toolbar button.run:hover{background:#a4441f}
+  .toolbar button.ico{min-width:38px;font-size:15px;padding:5px 10px}
+  .toolbar button:disabled{opacity:.35;cursor:default}
+  .toolbar button:disabled:hover{background:#1c322c;border-color:#335048}
 
   /* ---- layout ---- */
   main{flex:1;display:flex;min-height:0}
   .palette{
-    width:194px;background:var(--panel2);border-right:1px solid var(--edge);
-    overflow-y:auto;padding:12px 10px;flex-shrink:0;
+    width:150px;background:var(--panel2);border-right:1px solid var(--edge);
+    overflow-y:auto;padding:10px 8px;flex-shrink:0;
   }
-  .palette h3{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin:14px 4px 7px}
+  .palette h3{font-family:var(--mono);font-size:9px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:12px 3px 5px}
   .palette h3:first-child{margin-top:2px}
   .unit-chip{
-    display:flex;align-items:center;gap:9px;background:var(--node);border:1px solid var(--edge);
-    border-radius:7px;padding:8px 9px;margin-bottom:6px;cursor:pointer;font-size:12.5px;font-weight:500;
+    display:flex;align-items:center;gap:7px;background:var(--node);border:1px solid var(--edge);
+    border-radius:6px;padding:5px 7px;margin-bottom:4px;cursor:pointer;font-size:11px;font-weight:500;
     box-shadow:var(--shadow);transition:.1s;user-select:none;
   }
   .unit-chip:hover{border-color:var(--line);transform:translateX(2px)}
   .unit-chip.armed{border-color:var(--steam);background:#fbeee9;box-shadow:0 0 0 2px rgba(192,82,42,.2),var(--shadow)}
-  .unit-chip svg{flex-shrink:0}
+  .unit-chip .chip-ico{width:22px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .unit-chip .chip-ico svg{width:22px;height:22px}
 
   /* ---- canvas ---- */
   .canvas-wrap{flex:1;position:relative;overflow:hidden;background:
@@ -116,6 +129,10 @@
   .waypoint.ghost:hover{opacity:1;stroke:var(--steam)}
   .endpoint{fill:#fff;stroke:var(--steam);stroke-width:2.5;cursor:grab;pointer-events:all}
   .endpoint:hover{fill:var(--steam)}
+  .segh{fill:var(--steam);opacity:.55;pointer-events:all}
+  .segh.h{cursor:ns-resize}
+  .segh.v{cursor:ew-resize}
+  .segh:hover{opacity:1}
 
   /* ---- inspector ---- */
   .inspector{
@@ -182,35 +199,14 @@
 <body>
 <header>
   <div class="brand">Flowsheet <small>steady-state simulator</small></div>
-  <div class="topbtns">
-    <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3aa">Property method
-      <select id="thermoSel" style="font-family:var(--mono);font-size:11px;background:#1c322c;color:var(--paper);border:1px solid #335048;border-radius:5px;padding:6px 8px">
-        <option value="nrtl">NRTL (activity)</option>
-        <option value="pr">Peng-Robinson (EOS)</option>
-        <option value="ideal">Ideal (Raoult)</option>
-      </select>
-    </label>
-    <label style="display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:#9fb3aa">Routing
-      <select id="routeSel" style="font-family:var(--mono);font-size:11px;background:#1c322c;color:var(--paper);border:1px solid #335048;border-radius:5px;padding:6px 8px">
-        <option value="curve">Smooth</option>
-        <option value="ortho">Right-angle</option>
-        <option value="straight">Straight</option>
-      </select>
-    </label>
-    <button id="btnUndo" title="Undo (Ctrl+Z)" style="min-width:38px">↶</button>
-    <button id="btnRedo" title="Redo (Ctrl+Shift+Z)" style="min-width:38px">↷</button>
-    <button id="btnSample">Column Example</button>
-    <button id="btnRecycle">Recycle Example</button>
-    <button id="btnClear">Clear</button>
-    <button class="run" id="btnRun">▶ Solve</button>
-  </div>
+  <div class="header-hint">A process flowsheeting &amp; simulation sandbox</div>
 </header>
 
 <main>
   <aside class="palette" id="palette"></aside>
 
   <div class="canvas-wrap" id="cwrap">
-    <div class="tip">Place: click a palette block, then click the canvas · Connect: hover a block, drag a port (green = in, blue = out) to another block · Edit a stream: click it, then drag the square ends to re-attach or the round handles to bend · Routing menu sets curved / right-angle (auto-avoids blocks) / straight</div>
+    <div class="tip">Place: click a palette block, then click the canvas · Connect: hover a block, drag a port (green = in, blue = out) to another block · Edit a stream: click it, then drag the square ends to re-attach or drag any segment to slide it · Routing menu sets right-angle (default) / curved / straight</div>
     <svg class="wires" id="wires">
       <defs>
         <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -240,6 +236,33 @@
     </div>
   </aside>
 </main>
+
+<footer class="toolbar">
+  <div class="tb-group">
+    <label class="tb-label">Property method
+      <select id="thermoSel">
+        <option value="nrtl">NRTL (activity)</option>
+        <option value="pr">Peng-Robinson (EOS)</option>
+        <option value="ideal">Ideal (Raoult)</option>
+      </select>
+    </label>
+    <label class="tb-label">Routing
+      <select id="routeSel">
+        <option value="ortho">Right-angle</option>
+        <option value="curve">Smooth</option>
+        <option value="straight">Straight</option>
+      </select>
+    </label>
+  </div>
+  <div class="tb-group">
+    <button id="btnUndo" title="Undo (Ctrl+Z)" class="ico">↶</button>
+    <button id="btnRedo" title="Redo (Ctrl+Shift+Z)" class="ico">↷</button>
+    <button id="btnSample">Column Example</button>
+    <button id="btnRecycle">Recycle Example</button>
+    <button id="btnClear">Clear</button>
+    <button class="run" id="btnRun">▶ Solve</button>
+  </div>
+</footer>
 
 <script>
 /* ============================================================
@@ -463,61 +486,64 @@ function inPorts(type){return UNIT_DEFS[type].ports.filter(p=>p.dir==='in');}
 // Each fills its node via viewBox matched to the unit's w:h. The shape is the
 // block; ports attach at the perimeter. Conventions follow common PFD symbols.
 const SY='var(--line)', AC='var(--steam)', CL='var(--cool)', FILL='var(--node)';
-function svg(vb,inner){return `<svg viewBox="${vb}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${inner}</svg>`;}
+function svg(vb,inner){return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${inner}</svg>`;}
 
-// Feed: source arrow into a node (we draw a small tank/arrow)
+// Feed: source / supply (circle with outgoing arrow — standard stream source)
 function gFeed(){return svg('0 0 96 62',
-  `<rect x="6" y="14" width="62" height="34" rx="4" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M16 31h40" stroke="${AC}" stroke-width="2.5" fill="none"/>
-   <path d="M50 25l9 6-9 6z" fill="${AC}"/>`);}
-// Product: receiving node / delivery
+  `<circle cx="26" cy="31" r="16" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M26 23v16M26 31h6" stroke="${SY}" stroke-width="1.6" fill="none" opacity="0.5"/>
+   <path d="M42 31h34" stroke="${AC}" stroke-width="2.4" fill="none"/>
+   <path d="M68 26l9 5-9 5z" fill="${AC}"/>`);}
+// Product: sink / delivery (incoming arrow into a filled node)
 function gProduct(){return svg('0 0 96 62',
-  `<rect x="28" y="14" width="62" height="34" rx="4" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M40 31h34" stroke="${SY}" stroke-width="2.5" fill="none"/>
-   <circle cx="74" cy="31" r="4.5" fill="${SY}"/>`);}
-// Mixer: three inlets merging (standard mixing junction in a vessel)
+  `<path d="M20 31h34" stroke="${SY}" stroke-width="2.4" fill="none"/>
+   <path d="M46 26l9 5-9 5z" fill="${SY}"/>
+   <circle cx="72" cy="31" r="16" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <circle cx="72" cy="31" r="5" fill="${SY}"/>`);}
+// Mixing tee: streams join at a junction node (PFD mixing point)
 function gMixer(){return svg('0 0 88 84',
-  `<circle cx="44" cy="42" r="30" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M20 26h24M20 42h24M20 58h24" stroke="${SY}" stroke-width="1.6" fill="none"/>
-   <path d="M44 42h24" stroke="${AC}" stroke-width="2.4" fill="none"/>
-   <path d="M30 30l16 12-16 12" stroke="${CL}" stroke-width="2" fill="none"/>`);}
-// Splitter / tee: one in, branches out
+  `<path d="M18 24h26M18 42h26M18 60h26" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M44 42h26" stroke="${AC}" stroke-width="2.4" fill="none"/>
+   <circle cx="44" cy="42" r="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
+// Splitting tee: one stream branches at a junction node
 function gSplit(){return svg('0 0 88 84',
-  `<circle cx="44" cy="42" r="30" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M20 42h24" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M44 42l24-16M44 42l24 16" stroke="${AC}" stroke-width="2.2" fill="none"/>
-   <circle cx="44" cy="42" r="4" fill="${CL}"/>`);}
-// Heat exchanger: classic circle with two zig internal (TEMA-style shell hint)
+  `<path d="M14 42h30" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M44 42h22M66 42V18M66 42v24" stroke="${AC}" stroke-width="2.2" fill="none"/>
+   <path d="M66 18l-4 6h8z M66 66l-4 -6h8z" fill="${AC}"/>
+   <circle cx="44" cy="42" r="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
+// Heat exchanger: ISO circle symbol with the two-pass internal tube
 function gHeater(){return svg('0 0 92 72',
-  `<circle cx="46" cy="36" r="28" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M22 36h8l4 -12 8 24 8 -24 8 24 4 -12h8" stroke="${AC}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`);}
-// Pump: circle with impeller triangle and discharge tangent (centrifugal pump)
+  `<circle cx="46" cy="36" r="27" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M19 36h11l4 -13 8 26 8 -26 8 26 4 -13h11" stroke="${AC}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`);}
+// Centrifugal pump: standard symbol — circle with tangential top discharge on a base
 function gPump(){return svg('0 0 84 72',
-  `<circle cx="38" cy="40" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M38 14v26l22 10" stroke="${CL}" stroke-width="2" fill="none"/>
-   <path d="M38 40l16 -8 0 16z" fill="${CL}" opacity="0.85"/>`);}
+  `<circle cx="40" cy="34" r="22" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M40 12 H66" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M40 12 A22 22 0 0 1 62 34" fill="none" stroke="${SY}" stroke-width="0"/>
+   <path d="M24 56 L56 56 L50 68 L30 68 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M30 56 L34 54 M50 56 L46 54" stroke="${SY}" stroke-width="0"/>
+   <path d="M40 34 L58 24" stroke="${CL}" stroke-width="2" fill="none"/>
+   <path d="M27 34a13 13 0 0 1 26 0" stroke="${CL}" stroke-width="1.6" fill="none" opacity="0.7"/>`);}
 // Flash drum: vertical pressure vessel with rounded heads + liquid level
 function gFlash(){return svg('0 0 84 96',
   `<path d="M22 18 a20 14 0 0 1 40 0 V78 a20 14 0 0 1 -40 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M22 60 a20 8 0 0 0 40 0" stroke="${CL}" stroke-width="1.8" fill="none"/>
-   <path d="M26 66h32M26 71h32" stroke="${CL}" stroke-width="1.3" fill="none" opacity="0.6"/>
-   <ellipse cx="42" cy="60" rx="20" ry="8" fill="${CL}" opacity="0.12"/>`);}
-// Distillation column: tall tower with trays + rounded heads
+   <path d="M22 58 a20 8 0 0 0 40 0" stroke="${CL}" stroke-width="1.8" fill="none"/>
+   <ellipse cx="42" cy="58" rx="20" ry="8" fill="${CL}" opacity="0.12"/>`);}
+// Distillation column: tall trayed tower with rounded heads
 function gColumn(){return svg('0 0 78 150',
   `<path d="M14 22 a25 12 0 0 1 50 0 V128 a25 12 0 0 1 -50 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   ${[40,56,72,88,104].map(y=>`<path d="M16 ${y}h46" stroke="${CL}" stroke-width="1.5" fill="none"/>`).join('')}
-   <path d="M14 22 a25 12 0 0 1 50 0" stroke="${SY}" stroke-width="1.4" fill="none" opacity="0.5"/>`);}
+   ${[42,58,74,90,106].map(y=>`<path d="M17 ${y}h44" stroke="${CL}" stroke-width="1.5" fill="none"/>`).join('')}`);}
 // Component separator / generic vessel with internal split line
 function gSep(){return svg('0 0 84 96',
   `<path d="M20 16 a22 10 0 0 1 44 0 V80 a22 10 0 0 1 -44 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M20 48h44" stroke="${AC}" stroke-width="1.8" fill="none"/>
-   <path d="M30 34h24M30 62h24" stroke="${SY}" stroke-width="1.2" fill="none" opacity="0.5"/>`);}
-// Reactor: vessel with stir/coil and reaction hint
+   <path d="M20 48h44" stroke="${AC}" stroke-width="1.8" fill="none" stroke-dasharray="4 3"/>`);}
+// Reactor: stirred-tank vessel with agitator shaft & impeller blades (CSTR)
 function gReactor(){return svg('0 0 90 96',
-  `<rect x="20" y="14" width="50" height="68" rx="22" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M32 60c4 -6 8 0 12 -6s8 0 12 -6" stroke="${AC}" stroke-width="2.2" fill="none"/>
-   <circle cx="38" cy="36" r="3" fill="${CL}"/><circle cx="54" cy="42" r="3" fill="${AC}"/>
-   <circle cx="46" cy="30" r="2.4" fill="${CL}" opacity="0.7"/>`);}
+  `<rect x="22" y="16" width="46" height="66" rx="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M45 6 V50" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M33 50 H57" stroke="${SY}" stroke-width="3" fill="none"/>
+   <path d="M33 50 L37 44 M57 50 L53 44" stroke="${SY}" stroke-width="2" fill="none"/>
+   <path d="M28 66c5 -5 9 0 14 -5s9 0 14 -5" stroke="${CL}" stroke-width="1.6" fill="none" opacity="0.55"/>`);}
 
 // ============================================================
 //  STATE
@@ -603,7 +629,7 @@ function buildPalette(){
   for(const [cat,items] of Object.entries(cats)){
     html+=`<h3>${cat}</h3>`;
     for(const [t,d] of items){
-      html+=`<div class="unit-chip" draggable="true" data-type="${t}">${d.glyph()}<span>${d.name}</span></div>`;
+      html+=`<div class="unit-chip" draggable="true" data-type="${t}"><span class="chip-ico">${d.glyph()}</span><span>${d.name}</span></div>`;
     }
   }
   pal.innerHTML=html;
@@ -799,7 +825,7 @@ function portXY(nodeId,portId){
   return {x:n.x+off.x, y:n.y+off.y, nx:nrm[0], ny:nrm[1], side:p.side};
 }
 
-let ROUTE='curve';     // 'curve' | 'ortho' | 'straight'
+let ROUTE='ortho';     // 'curve' | 'ortho' | 'straight' — right-angle by default
 
 // Build the list of points an edge passes through: outlet, waypoints, inlet.
 function edgePoints(e){
@@ -807,9 +833,18 @@ function edgePoints(e){
   return [a, ...(e.waypoints||[]), b];
 }
 
+// =========================================================================
+//  ORTHOGONAL ROUTING (draw.io-style)
+//  An ortho edge's route = [A, ...bends, B] joined by right-angle segments.
+//  - With no manual waypoints we auto-route: a clean L/Z that leaves & enters
+//    along the port normals and avoids other blocks.
+//  - Manual waypoints are bend coordinates the user has pinned by dragging a
+//    segment. We rebuild a fully-orthogonal chain that passes through them.
+// =========================================================================
+
 // --- obstacle data: padded bounding boxes of every block ---
 function nodeRects(exclude){
-  const pad=10, out=[];
+  const pad=12, out=[];
   for(const id in nodes){
     if(exclude&&exclude.includes(id))continue;
     const n=nodes[id], d=UNIT_DEFS[n.type];
@@ -817,11 +852,12 @@ function nodeRects(exclude){
   }
   return out;
 }
-// does an axis-aligned segment p->q overlap rectangle r?
 function segHitsRect(p,q,r){
   const minx=Math.min(p.x,q.x),maxx=Math.max(p.x,q.x);
   const miny=Math.min(p.y,q.y),maxy=Math.max(p.y,q.y);
-  if(maxx<r.x1||minx>r.x2||maxy<r.y1||miny>r.y2)return false;
+  // strict overlap: a segment lying exactly on the padded boundary is allowed
+  // (the pad already provides clearance), so use > / < not >= / <=.
+  if(maxx<=r.x1||minx>=r.x2||maxy<=r.y1||miny>=r.y2)return false;
   return true;
 }
 function polyCost(pts,rects){
@@ -830,25 +866,32 @@ function polyCost(pts,rects){
     len+=Math.abs(pts[i+1].x-pts[i].x)+Math.abs(pts[i+1].y-pts[i].y);
     for(const r of rects) if(segHitsRect(pts[i],pts[i+1],r)) hits++;
   }
-  return hits*10000 + bends*40 + len; // crossings dominate, then bends, then length
+  return hits*100000 + bends*60 + len;
 }
-// Obstacle-aware orthogonal point list from A (with port normal) to B.
+// Auto orthogonal route from port A to port B, avoiding other blocks.
 function orthoRoute(A,B,exclude){
-  const stub=20;
+  const stub=22, clr=20; // stub length, obstacle clearance
   const a={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
   const b={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
   const rects=nodeRects(exclude);
   const cand=[];
-  cand.push([A,a,{x:b.x,y:a.y},b,B]);                       // HV elbow
-  cand.push([A,a,{x:a.x,y:b.y},b,B]);                       // VH elbow
+  cand.push([A,a,{x:b.x,y:a.y},b,B]);
+  cand.push([A,a,{x:a.x,y:b.y},b,B]);
   const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
-  cand.push([A,a,{x:mx,y:a.y},{x:mx,y:b.y},b,B]);           // mid vertical channel
-  cand.push([A,a,{x:a.x,y:my},{x:b.x,y:my},b,B]);           // mid horizontal channel
-  let top=Infinity,bot=-Infinity;
-  for(const r of rects){top=Math.min(top,r.y1);bot=Math.max(bot,r.y2);}
-  if(isFinite(top)){                                        // detour over / under the block band
-    cand.push([A,a,{x:a.x,y:top-24},{x:b.x,y:top-24},b,B]);
-    cand.push([A,a,{x:a.x,y:bot+24},{x:b.x,y:bot+24},b,B]);
+  cand.push([A,a,{x:mx,y:a.y},{x:mx,y:b.y},b,B]);
+  cand.push([A,a,{x:a.x,y:my},{x:b.x,y:my},b,B]);
+  // detour candidates that clear the whole block band by a margin
+  let top=Infinity,bot=-Infinity,left=Infinity,right=-Infinity;
+  for(const r of rects){top=Math.min(top,r.y1);bot=Math.max(bot,r.y2);left=Math.min(left,r.x1);right=Math.max(right,r.x2);}
+  if(isFinite(top)){
+    const yA=top-clr, yB=bot+clr, xL=left-clr, xR=right+clr;
+    cand.push([A,a,{x:a.x,y:yA},{x:b.x,y:yA},b,B]);   // over the top
+    cand.push([A,a,{x:a.x,y:yB},{x:b.x,y:yB},b,B]);   // under the bottom
+    cand.push([A,a,{x:xL,y:a.y},{x:xL,y:b.y},b,B]);   // around the left
+    cand.push([A,a,{x:xR,y:a.y},{x:xR,y:b.y},b,B]);   // around the right
+    // L-then-detour combos for aligned ports: go out, over, and back
+    cand.push([A,a,{x:a.x,y:yA},{x:b.x,y:yA},{x:b.x,y:b.y},b,B]);
+    cand.push([A,a,{x:a.x,y:yB},{x:b.x,y:yB},{x:b.x,y:b.y},b,B]);
   }
   let best=null,bestC=Infinity;
   for(const c of cand){
@@ -857,6 +900,22 @@ function orthoRoute(A,B,exclude){
     if(cost<bestC){bestC=cost;best=clean;}
   }
   return best||[A,B];
+}
+// Build a fully-orthogonal chain that starts at A (leaving along its normal),
+// passes through each manual bend, and ends at B (entering along its normal).
+// Between consecutive anchor points we insert one elbow so every leg is H or V.
+function orthoThrough(A,B,bends){
+  const stub=20;
+  const aStub={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
+  const bStub={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
+  const anchors=[A,aStub,...bends,bStub,B];
+  const chain=[anchors[0]];
+  for(let i=1;i<anchors.length;i++){
+    const p=chain[chain.length-1], q=anchors[i];
+    if(Math.abs(p.x-q.x)<0.5||Math.abs(p.y-q.y)<0.5){ chain.push(q); }     // already aligned
+    else { chain.push({x:q.x,y:p.y}, q); }                                 // elbow (H then V)
+  }
+  return dedupeColinear(chain);
 }
 function dedupeColinear(pts){
   const out=[pts[0]];
@@ -871,8 +930,7 @@ function dedupeColinear(pts){
   out.push(pts[pts.length-1]);
   return out;
 }
-// Geometric midpoint measured along the polyline through all points — so the
-// stream label tracks bends instead of sitting on the straight-line midpoint.
+// Geometric midpoint measured along the polyline through all points.
 function polylineMidpoint(pts){
   if(pts.length<2)return pts[0]||{x:0,y:0};
   let total=0; const segs=[];
@@ -890,27 +948,13 @@ function polylineMidpoint(pts){
   }
   return pts[pts.length-1];
 }
-// Return the final ordered point list actually rendered for an edge (so labels
-// and hit-testing match the drawn route, including auto-ortho detours).
+// Final rendered point list for an edge (matches what's drawn).
 function routePoints(e){
-  const pts=edgePoints(e);
-  if(ROUTE!=='ortho')return pts;
-  const A=pts[0],B=pts[pts.length-1],manual=pts.slice(1,-1);
-  if(manual.length===0){
-    const excl=[e.from,e.to];
-    return orthoRoute(A,B,excl);
-  }
-  const stub=18;
-  const start={x:A.x+(A.nx||0)*stub, y:A.y+(A.ny||0)*stub};
-  const end={x:B.x+(B.nx||0)*stub, y:B.y+(B.ny||0)*stub};
-  const seq=[A,start,...manual,end,B];
-  let chain=[seq[0]];
-  for(let i=1;i<seq.length;i++){
-    const p0=seq[i-1],p1=seq[i];
-    if(i===1||i===seq.length-1){chain.push(p1);}
-    else { const mx=(p0.x+p1.x)/2; chain.push({x:mx,y:p0.y},{x:mx,y:p1.y},p1); }
-  }
-  return dedupeColinear(chain);
+  const A=portXY(e.from,e.fromPort), B=portXY(e.to,e.toPort);
+  if(ROUTE!=='ortho') return [A, ...(e.waypoints||[]), B];
+  const bends=e.waypoints||[];
+  if(bends.length===0) return orthoRoute(A,B,[e.from,e.to]);
+  return orthoThrough(A,B,bends);
 }
 
 // Build an SVG path through points. The first and last points may carry a
@@ -969,7 +1013,7 @@ function buildPath(pts,edge){
 }
 
 function drawWires(mouseEv){
-  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp,.waypoint,.endpoint')].forEach(el=>el.remove());
+  [...wires.querySelectorAll('.wire,.wire-hit,.wire-label,.tmp,.waypoint,.endpoint,.segh')].forEach(el=>el.remove());
   for(const e of Object.values(edges)){
     const pts=edgePoints(e);
     const dPath=buildPath(pts,e);
@@ -978,10 +1022,10 @@ function drawWires(mouseEv){
     if(e.solved){ if(e.solved.phase==='Vapor'){cls='wire hot';mk='url(#arrowH)';}
       else if(e.solved.T<25){cls='wire cold';mk='url(#arrowC)';} }
     const isSel=(selected===e.id&&selKind==='edge');
-    // fat invisible hit area: click selects, double-click adds a waypoint
+    // fat invisible hit area: click selects; double-click adds a bend (curve/straight only)
     const hit=mk0('path',{class:'wire-hit',d:dPath});
     hit.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e.id);});
-    hit.addEventListener('dblclick',ev=>{ev.stopPropagation();addWaypoint(e,ev);});
+    hit.addEventListener('dblclick',ev=>{ev.stopPropagation(); if(ROUTE!=='ortho')addWaypoint(e,ev);});
     wires.appendChild(hit);
     const path=mk0('path',{class:cls+(isSel?' sel':''),d:dPath,'marker-end':mk});
     wires.appendChild(path);
@@ -994,24 +1038,40 @@ function drawWires(mouseEv){
     lab.style.pointerEvents='all';
     lab.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e.id);});
     wires.appendChild(lab);
-    // when selected, show endpoint re-attach handles + waypoint handles + ghost adders
+    // when selected, show endpoint re-attach handles + editing affordances
     if(isSel){
+      const route=routePoints(e);
+      const A2=route[0], B2=route[route.length-1];
       // endpoint handles (square) — drag to re-attach to a different port
-      const epA=mk0('rect',{class:'endpoint',x:a.x-6,y:a.y-6,width:12,height:12,rx:2});
+      const epA=mk0('rect',{class:'endpoint',x:A2.x-6,y:A2.y-6,width:12,height:12,rx:2});
       epA.addEventListener('mousedown',ev=>startEndpointDrag(ev,e,'from'));
       wires.appendChild(epA);
-      const epB=mk0('rect',{class:'endpoint',x:b.x-6,y:b.y-6,width:12,height:12,rx:2});
+      const epB=mk0('rect',{class:'endpoint',x:B2.x-6,y:B2.y-6,width:12,height:12,rx:2});
       epB.addEventListener('mousedown',ev=>startEndpointDrag(ev,e,'to'));
       wires.appendChild(epB);
-      // waypoint handles (round)
-      (e.waypoints||[]).forEach((wp,idx)=>{
-        const h=mk0('circle',{class:'waypoint',cx:wp.x,cy:wp.y,r:6});
-        h.addEventListener('mousedown',ev=>startWaypointDrag(ev,e,idx));
-        h.addEventListener('dblclick',ev=>{ev.stopPropagation();pushHistory();e.waypoints.splice(idx,1);drawWires();renderEdgeInspector();});
-        wires.appendChild(h);
-      });
-      // ghost midpoints to add new bends (skip in auto-ortho so the auto route stays clean)
-      if(!(ROUTE==='ortho'&&(e.waypoints||[]).length===0)){
+      if(ROUTE==='ortho'){
+        // draw.io-style: a draggable handle at the middle of each interior
+        // segment. Dragging slides the whole segment perpendicular to itself —
+        // no new bends are created. The two end segments (touching the ports)
+        // are left alone so the wire keeps leaving/entering along the normal.
+        for(let i=1;i<route.length-2;i++){
+          const p=route[i], q=route[i+1];
+          const horiz=Math.abs(p.y-q.y)<0.5;
+          const mx=(p.x+q.x)/2, my=(p.y+q.y)/2;
+          const handle=mk0('rect',{class:'segh '+(horiz?'h':'v'),
+            x:mx-(horiz?10:4), y:my-(horiz?4:10),
+            width:horiz?20:8, height:horiz?8:20, rx:3});
+          handle.addEventListener('mousedown',ev=>startSegmentDrag(ev,e,i,horiz,route));
+          wires.appendChild(handle);
+        }
+      } else {
+        // curve / straight: point-based waypoint handles + ghost add-points
+        (e.waypoints||[]).forEach((wp,idx)=>{
+          const h=mk0('circle',{class:'waypoint',cx:wp.x,cy:wp.y,r:6});
+          h.addEventListener('mousedown',ev=>startWaypointDrag(ev,e,idx));
+          h.addEventListener('dblclick',ev=>{ev.stopPropagation();pushHistory();e.waypoints.splice(idx,1);drawWires();renderEdgeInspector();});
+          wires.appendChild(h);
+        });
         for(let i=0;i<pts.length-1;i++){
           const gx=(pts[i].x+pts[i+1].x)/2, gy=(pts[i].y+pts[i+1].y)/2;
           const g=mk0('circle',{class:'waypoint ghost',cx:gx,cy:gy,r:5});
@@ -1069,6 +1129,45 @@ function startWaypointDrag(ev,e,idx,fresh){
     e.waypoints[idx]={x:m.clientX-r.left, y:m.clientY-r.top}; drawWires(); };
   const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);renderEdgeInspector();};
   document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+
+// draw.io-style segment slide: drag an interior segment perpendicular to its
+// orientation. Both of the segment's endpoints move together so all corners
+// stay at 90°, and we re-derive the edge's bend points from the result. No new
+// bends appear unless the slide genuinely needs them.
+function startSegmentDrag(ev,e,segIdx,horiz,baseRoute){
+  ev.stopPropagation(); ev.preventDefault();
+  const r=cwrap.getBoundingClientRect();
+  const route=baseRoute.map(p=>({x:p.x,y:p.y}));
+  const sx=ev.clientX, sy=ev.clientY;
+  let pushed=false;
+  const mv=m=>{
+    if(!pushed && (Math.abs(m.clientX-sx)>2||Math.abs(m.clientY-sy)>2)){pushHistory();pushed=true;}
+    const mx=m.clientX-r.left, my=m.clientY-r.top;
+    const moved=route.map(p=>({x:p.x,y:p.y}));
+    if(horiz){ moved[segIdx].y=my; moved[segIdx+1].y=my; }   // slide horizontal seg vertically
+    else      { moved[segIdx].x=mx; moved[segIdx+1].x=mx; }  // slide vertical seg horizontally
+    // store interior bends (drop the two port endpoints AND the two normal stubs)
+    e.waypoints = deriveBends(moved);
+    drawWires();
+  };
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);renderEdgeInspector();};
+  document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
+}
+// From a full orthogonal route [port, stub, ...bends, stub, port], keep just the
+// interior bend points that orthoThrough needs to reproduce the shape.
+function deriveBends(route){
+  const clean=dedupeColinear(route);
+  // drop first & last (ports). The remaining interior points are the bends.
+  const interior=clean.slice(1,-1);
+  // collapse near-duplicates
+  const out=[];
+  for(const p of interior){
+    const last=out[out.length-1];
+    if(last&&Math.abs(last.x-p.x)<1&&Math.abs(last.y-p.y)<1)continue;
+    out.push({x:Math.round(p.x),y:Math.round(p.y)});
+  }
+  return out;
 }
 
 // Drag an edge endpoint to re-attach it to a different port (draw.io rewire).
@@ -1696,7 +1795,13 @@ document.getElementById('btnRun').onclick=solve;
 document.getElementById('btnUndo').onclick=undo;
 document.getElementById('btnRedo').onclick=redo;
 document.getElementById('thermoSel').onchange=e=>{THERMO=e.target.value;status('Property method: '+e.target.options[e.target.selectedIndex].text+' · press Solve to re-run');};
-document.getElementById('routeSel').onchange=e=>{ROUTE=e.target.value;drawWires();};
+document.getElementById('routeSel').onchange=e=>{
+  ROUTE=e.target.value;
+  // waypoint semantics differ between modes; clear so routes stay clean
+  Object.values(edges).forEach(ed=>{ed.waypoints=[];});
+  drawWires();
+  status('Routing: '+e.target.options[e.target.selectedIndex].text);
+};
 
 // raw clear (no history) used internally by examples
 function clearAll(){
