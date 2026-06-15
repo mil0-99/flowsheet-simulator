@@ -56,11 +56,11 @@
   .palette h3:first-child{margin-top:2px}
   .unit-chip{
     display:flex;align-items:center;gap:9px;background:var(--node);border:1px solid var(--edge);
-    border-radius:7px;padding:8px 9px;margin-bottom:6px;cursor:grab;font-size:12.5px;font-weight:500;
+    border-radius:7px;padding:8px 9px;margin-bottom:6px;cursor:pointer;font-size:12.5px;font-weight:500;
     box-shadow:var(--shadow);transition:.1s;user-select:none;
   }
   .unit-chip:hover{border-color:var(--line);transform:translateX(2px)}
-  .unit-chip:active{cursor:grabbing}
+  .unit-chip.armed{border-color:var(--steam);background:#fbeee9;box-shadow:0 0 0 2px rgba(192,82,42,.2),var(--shadow)}
   .unit-chip svg{flex-shrink:0}
 
   /* ---- canvas ---- */
@@ -68,6 +68,7 @@
     radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0) 0 0/22px 22px,
     var(--paper);}
   #canvas{position:absolute;inset:0;}
+  .canvas-wrap.placing{cursor:copy}
   .node{
     position:absolute;width:104px;min-height:64px;background:var(--node);
     border:1.5px solid var(--line);border-radius:9px;box-shadow:var(--shadow);
@@ -78,22 +79,33 @@
   .node .glyph{margin-bottom:3px}
   .node .nm{font-size:11px;font-weight:600;text-align:center;line-height:1.1}
   .node .ty{font-family:var(--mono);font-size:8.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-top:1px}
+  /* draw.io-style connection ports: faint until you hover the node, then clear */
   .port{
-    position:absolute;width:13px;height:13px;border-radius:50%;background:var(--paper);
-    border:2px solid var(--line);cursor:crosshair;z-index:6;transition:.1s;
+    position:absolute;width:15px;height:15px;border-radius:50%;
+    background:var(--cool);border:2px solid #fff;cursor:crosshair;z-index:7;
+    opacity:0;transition:opacity .12s,transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.25);
   }
-  .port:hover{background:var(--steam);border-color:var(--steam);transform:scale(1.25)}
-  .port.in{left:-7px;top:50%;transform:translateY(-50%)}
-  .port.in:hover{transform:translateY(-50%) scale(1.25)}
-  .port.out{right:-7px;top:50%;transform:translateY(-50%)}
-  .port.out:hover{transform:translateY(-50%) scale(1.25)}
+  .node:hover .port{opacity:.55}
+  .port:hover{opacity:1!important;transform:scale(1.35)}
+  .port.in{left:-8px;top:50%;transform:translateY(-50%);background:var(--ok)}
+  .port.in:hover{transform:translateY(-50%) scale(1.35)}
+  .port.out{right:-8px;top:50%;transform:translateY(-50%)}
+  .port.out:hover{transform:translateY(-50%) scale(1.35)}
+  .port.tgt{opacity:1!important;transform:translateY(-50%) scale(1.5);box-shadow:0 0 0 4px rgba(58,110,165,.3)}
+  .port.in.tgt{background:var(--ok);box-shadow:0 0 0 4px rgba(47,125,85,.3)}
+  /* highlight a node as a valid drop target while wiring */
+  .node.wire-target{border-color:var(--cool);box-shadow:0 0 0 3px rgba(58,110,165,.25),var(--shadow)}
+
+  header button:disabled{opacity:.35;cursor:default}
+  header button:disabled:hover{background:#1c322c;border-color:#335048}
 
   svg.wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2}
   .wire{fill:none;stroke:var(--line);stroke-width:2.5;pointer-events:stroke;cursor:pointer}
   .wire.hot{stroke:var(--steam)}
   .wire.cold{stroke:var(--cool)}
   .wire.sel{stroke-width:3.5}
-  .wire-label{font-family:var(--mono);font-size:10px;fill:var(--ink)}
+  .wire-label{font-family:var(--mono);font-size:10px;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:3px;stroke-linejoin:round}
+  .wire-label-bg{fill:var(--paper);opacity:.92}
   .wire-hit{stroke:transparent;stroke-width:16;fill:none;pointer-events:stroke;cursor:pointer}
   .waypoint{fill:var(--node);stroke:var(--steam);stroke-width:2;cursor:move;pointer-events:all}
   .waypoint:hover{fill:var(--steam)}
@@ -180,6 +192,8 @@
         <option value="straight">Straight</option>
       </select>
     </label>
+    <button id="btnUndo" title="Undo (Ctrl+Z)" style="min-width:38px">↶</button>
+    <button id="btnRedo" title="Redo (Ctrl+Shift+Z)" style="min-width:38px">↷</button>
     <button id="btnSample">Column Example</button>
     <button id="btnRecycle">Recycle Example</button>
     <button id="btnClear">Clear</button>
@@ -191,7 +205,7 @@
   <aside class="palette" id="palette"></aside>
 
   <div class="canvas-wrap" id="cwrap">
-    <div class="tip">Drag blocks in · drag port → port to connect · click a stream then drag its handles to bend it (double-click a stream to add a bend)</div>
+    <div class="tip">Click a block in the palette then click the canvas to place it (or drag it in) · hover a block and drag the blue dot to connect · click a stream and drag its handles to bend it</div>
     <svg class="wires" id="wires">
       <defs>
         <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
@@ -428,6 +442,50 @@ const canvas=document.getElementById('canvas');
 const wires=document.getElementById('wires');
 const cwrap=document.getElementById('cwrap');
 
+// ---------- undo / redo history ----------
+// We snapshot the full diagram (nodes+edges, minus solved results which are
+// derived) before each mutation. Redo stack clears on any new action.
+let undoStack=[], redoStack=[];
+function snapshot(){
+  const clean={};
+  for(const id in edges){const e=edges[id];clean[id]={id:e.id,from:e.from,to:e.to,name:e.name,
+    waypoints:(e.waypoints||[]).map(w=>({x:w.x,y:w.y}))};}
+  return JSON.stringify({nodes,edges:clean,nid,eid});
+}
+function pushHistory(){
+  undoStack.push(snapshot());
+  if(undoStack.length>100)undoStack.shift();
+  redoStack.length=0;
+  updateUndoButtons();
+}
+function restore(snap){
+  const s=JSON.parse(snap);
+  nodes=s.nodes; edges=s.edges; nid=s.nid; eid=s.eid;
+  for(const id in edges){edges[id].solved=null; edges[id].waypoints=edges[id].waypoints||[];}
+  selected=null; selKind=null;
+  // rebuild DOM nodes
+  canvas.innerHTML='';
+  for(const id in nodes) renderNode(id);
+  drawWires(); renderInspector(); refreshSel();
+}
+function undo(){
+  if(!undoStack.length)return;
+  redoStack.push(snapshot());
+  restore(undoStack.pop());
+  updateUndoButtons(); status('Undo');
+}
+function redo(){
+  if(!redoStack.length)return;
+  undoStack.push(snapshot());
+  restore(redoStack.pop());
+  updateUndoButtons(); status('Redo');
+}
+function updateUndoButtons(){
+  const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
+  if(u)u.disabled=!undoStack.length;
+  if(r)r.disabled=!redoStack.length;
+}
+
 // ---------- default spec per unit ----------
 function defaultSpec(type){
   switch(type){
@@ -444,8 +502,9 @@ function defaultSpec(type){
 }
 
 // ============================================================
-//  PALETTE
+//  PALETTE  (click-to-place is primary; drag still works)
 // ============================================================
+let armedType=null;  // when a palette item is "armed", next canvas click places it
 function buildPalette(){
   const pal=document.getElementById('palette');
   const cats={};
@@ -459,14 +518,31 @@ function buildPalette(){
   }
   pal.innerHTML=html;
   pal.querySelectorAll('.unit-chip').forEach(ch=>{
-    ch.addEventListener('dragstart',e=>{e.dataTransfer.setData('type',ch.dataset.type);});
+    ch.addEventListener('dragstart',e=>{disarm();e.dataTransfer.setData('type',ch.dataset.type);});
+    ch.addEventListener('click',()=>{
+      if(armedType===ch.dataset.type){disarm();}
+      else{ arm(ch.dataset.type, ch); }
+    });
   });
+}
+function arm(type,chip){
+  disarm();
+  armedType=type;
+  chip.classList.add('armed');
+  cwrap.classList.add('placing');
+  status('Click on the canvas to place the '+UNIT_DEFS[type].name+' (Esc to cancel)');
+}
+function disarm(){
+  armedType=null;
+  document.querySelectorAll('.unit-chip.armed').forEach(c=>c.classList.remove('armed'));
+  cwrap.classList.remove('placing');
 }
 cwrap.addEventListener('dragover',e=>e.preventDefault());
 cwrap.addEventListener('drop',e=>{
   e.preventDefault();
   const type=e.dataTransfer.getData('type'); if(!type)return;
   const r=cwrap.getBoundingClientRect();
+  pushHistory();
   addNode(type, e.clientX-r.left-52, e.clientY-r.top-32);
 });
 
@@ -481,6 +557,7 @@ function addNode(type,x,y){
     spec:defaultSpec(type)};
   renderNode(id);
   selectNode(id);
+  return id;
 }
 function renderNode(id){
   const n=nodes[id]; const d=UNIT_DEFS[n.type];
@@ -498,12 +575,17 @@ function renderNode(id){
   el.addEventListener('mousedown',ev=>{if(!ev.target.classList.contains('port'))selectNode(id);});
 }
 function makeDraggable(el,n){
-  let sx,sy,ox,oy,moving=false;
+  let sx,sy,ox,oy,moving=false,changed=false;
   el.addEventListener('mousedown',e=>{
     if(e.target.classList.contains('port'))return;
-    moving=true; sx=e.clientX; sy=e.clientY; ox=n.x; oy=n.y;
+    if(armedType)return;
+    moving=true;changed=false; sx=e.clientX; sy=e.clientY; ox=n.x; oy=n.y;
     e.preventDefault();
-    const mv=ev=>{ if(!moving)return; n.x=ox+(ev.clientX-sx); n.y=oy+(ev.clientY-sy);
+    let pushed=false;
+    const mv=ev=>{ if(!moving)return;
+      const nx=ox+(ev.clientX-sx), ny=oy+(ev.clientY-sy);
+      if(!pushed && (Math.abs(nx-ox)>2||Math.abs(ny-oy)>2)){pushHistory();pushed=true;changed=true;}
+      n.x=nx; n.y=ny;
       el.style.left=n.x+'px'; el.style.top=n.y+'px'; drawWires(); };
     const up=()=>{moving=false;document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
     document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
@@ -513,35 +595,86 @@ function makeDraggable(el,n){
 // ============================================================
 //  WIRING
 // ============================================================
+// ============================================================
+//  WIRING  (draw.io-style: drag a port, preview follows, snap to target)
+// ============================================================
 let pending=null; // {node,dir}
 function portHooks(p){
   p.addEventListener('mousedown',e=>{
     e.stopPropagation();
+    if(armedType)return;
     pending={node:p.dataset.node,dir:p.dataset.dir};
-    const mv=ev=>drawWires(ev);
-    const up=ev=>{
-      document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);
-      const tgt=document.elementFromPoint(ev.clientX,ev.clientY);
-      if(tgt&&tgt.classList.contains('port')){
-        const a=pending, b={node:tgt.dataset.node,dir:tgt.dataset.dir};
-        let from,to;
-        if(a.dir==='out'&&b.dir==='in'){from=a.node;to=b.node;}
-        else if(a.dir==='in'&&b.dir==='out'){from=b.node;to=a.node;}
-        if(from&&to&&from!==to){addEdge(from,to);}
+    let lastTgt=null;
+    const highlight=ev=>{
+      // find the port under the cursor (or nearest port of a hovered node) to snap to
+      clearTargets();
+      const el=document.elementFromPoint(ev.clientX,ev.clientY);
+      let tgtPort=null;
+      if(el&&el.classList.contains('port')) tgtPort=el;
+      else { // hovering a node body? snap to its compatible port
+        const nodeEl=el&&el.closest&&el.closest('.node');
+        if(nodeEl&&nodeEl.id!==pending.node){
+          const want=pending.dir==='out'?'in':'out';
+          tgtPort=nodeEl.querySelector('.port.'+want);
+          if(tgtPort)nodeEl.classList.add('wire-target');
+        }
       }
-      pending=null; drawWires();
+      if(tgtPort){
+        const valid=validConnection(pending,{node:tgtPort.dataset.node,dir:tgtPort.dataset.dir});
+        if(valid){tgtPort.classList.add('tgt');lastTgt=tgtPort;}
+        else lastTgt=null;
+      } else lastTgt=null;
+      drawWires(ev);
     };
-    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+    const up=ev=>{
+      document.removeEventListener('mousemove',highlight);document.removeEventListener('mouseup',up);
+      let tgtPort=lastTgt;
+      if(!tgtPort){ // last-chance: direct hit test
+        const el=document.elementFromPoint(ev.clientX,ev.clientY);
+        if(el&&el.classList.contains('port'))tgtPort=el;
+      }
+      if(tgtPort){
+        const b={node:tgtPort.dataset.node,dir:tgtPort.dataset.dir};
+        if(validConnection(pending,b)){
+          const from=pending.dir==='out'?pending.node:b.node;
+          const to=pending.dir==='out'?b.node:pending.node;
+          pushHistory();
+          addEdge(from,to);
+        }
+      }
+      pending=null; clearTargets(); drawWires();
+    };
+    document.addEventListener('mousemove',highlight);document.addEventListener('mouseup',up);
   });
 }
-function addEdge(from,to){
+function clearTargets(){
+  document.querySelectorAll('.port.tgt').forEach(p=>p.classList.remove('tgt'));
+  document.querySelectorAll('.node.wire-target').forEach(n=>n.classList.remove('wire-target'));
+}
+function validConnection(a,b){
+  if(!a||!b)return false;
+  if(a.node===b.node)return false;
+  if(a.dir===b.dir)return false;            // must be out->in
+  const from=a.dir==='out'?a.node:b.node;
+  const to=a.dir==='out'?b.node:a.node;
   // capacity check
+  const outU=Object.values(edges).filter(e=>e.from===from).length;
+  const inU=Object.values(edges).filter(e=>e.to===to).length;
+  if(outU>=UNIT_DEFS[nodes[from].type].out)return false;
+  if(inU>=UNIT_DEFS[nodes[to].type].in)return false;
+  // no duplicate edge
+  if(Object.values(edges).some(e=>e.from===from&&e.to===to))return false;
+  return true;
+}
+function addEdge(from,to){
+  // capacity check (defensive; validConnection already gates the UI)
   const outU=Object.values(edges).filter(e=>e.from===from).length;
   const inU=Object.values(edges).filter(e=>e.to===to).length;
   if(outU>=UNIT_DEFS[nodes[from].type].out){toast('Outlet ports full on '+nodes[from].name);return;}
   if(inU>=UNIT_DEFS[nodes[to].type].in){toast('Inlet ports full on '+nodes[to].name);return;}
   const id='e'+(eid++);
   edges[id]={id,from,to,name:'S'+(eid),solved:null,waypoints:[]};
+  selectEdge(id);
   drawWires(); status('Connected '+nodes[from].name+' → '+nodes[to].name);
 }
 function portXY(id,dir){
@@ -556,6 +689,25 @@ let ROUTE='curve';     // 'curve' | 'ortho' | 'straight'
 function edgePoints(e){
   const a=portXY(e.from,'out'), b=portXY(e.to,'in');
   return [a, ...(e.waypoints||[]), b];
+}
+// Geometric midpoint measured along the polyline through all points — so the
+// stream label tracks bends instead of sitting on the straight-line midpoint.
+function polylineMidpoint(pts){
+  if(pts.length<2)return pts[0]||{x:0,y:0};
+  let total=0; const segs=[];
+  for(let i=0;i<pts.length-1;i++){
+    const dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+    const len=Math.hypot(dx,dy); segs.push(len); total+=len;
+  }
+  let half=total/2;
+  for(let i=0;i<segs.length;i++){
+    if(half<=segs[i]){
+      const t=segs[i]?half/segs[i]:0;
+      return {x:pts[i].x+(pts[i+1].x-pts[i].x)*t, y:pts[i].y+(pts[i+1].y-pts[i].y)*t};
+    }
+    half-=segs[i];
+  }
+  return pts[pts.length-1];
 }
 // Build an SVG path string through points according to the routing style.
 function buildPath(pts){
@@ -606,26 +758,29 @@ function drawWires(mouseEv){
     wires.appendChild(hit);
     const path=mk0('path',{class:cls+(isSel?' sel':''),d:dPath,'marker-end':mk});
     wires.appendChild(path);
-    // label near the first segment midpoint
-    const mid=pts[Math.floor(pts.length/2)] || {x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-    const lx=(a.x+b.x)/2, ly=(a.y+b.y)/2-6;
-    const lab=mk0('text',{class:'wire-label',x:lx,y:ly,'text-anchor':'middle'});
-    lab.textContent=e.name + (e.solved?` · ${e.solved.flow.toFixed(1)}`:'');
+    // label at the true midpoint of the routed polyline (follows bends)
+    const mid=polylineMidpoint(pts);
+    const txt=e.name + (e.solved?` · ${e.solved.flow.toFixed(1)}`:'');
+    const lab=mk0('text',{class:'wire-label',x:mid.x,y:mid.y-7,'text-anchor':'middle'});
+    lab.textContent=txt;
+    lab.style.cursor='pointer';
+    lab.style.pointerEvents='all';
+    lab.addEventListener('click',ev=>{ev.stopPropagation();selectEdge(e.id);});
     wires.appendChild(lab);
     // when selected, show draggable waypoint handles + ghost add-handles on each segment
     if(isSel){
       (e.waypoints||[]).forEach((wp,idx)=>{
         const h=mk0('circle',{class:'waypoint',cx:wp.x,cy:wp.y,r:6});
         h.addEventListener('mousedown',ev=>startWaypointDrag(ev,e,idx));
-        h.addEventListener('dblclick',ev=>{ev.stopPropagation();e.waypoints.splice(idx,1);drawWires();});
+        h.addEventListener('dblclick',ev=>{ev.stopPropagation();pushHistory();e.waypoints.splice(idx,1);drawWires();renderEdgeInspector();});
         wires.appendChild(h);
       });
       // ghost midpoints to add new bends
       for(let i=0;i<pts.length-1;i++){
         const gx=(pts[i].x+pts[i+1].x)/2, gy=(pts[i].y+pts[i+1].y)/2;
         const g=mk0('circle',{class:'waypoint ghost',cx:gx,cy:gy,r:5});
-        g.addEventListener('mousedown',ev=>{ev.stopPropagation();
-          e.waypoints.splice(i,0,{x:gx,y:gy}); drawWires(); startWaypointDrag(ev,e,i);});
+        g.addEventListener('mousedown',ev=>{ev.stopPropagation();pushHistory();
+          e.waypoints.splice(i,0,{x:gx,y:gy}); drawWires(); startWaypointDrag(ev,e,i,true);});
         wires.appendChild(g);
       }
     }
@@ -650,17 +805,21 @@ function addWaypoint(e,ev){
     const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
     const d=(mx-x)**2+(my-y)**2; if(d<bestD){bestD=d;best=i;}
   }
+  pushHistory();
   e.waypoints.splice(best,0,{x,y});
   selectEdge(e.id);
   status('Bend added — drag handles to shape the stream; double-click a handle to remove it');
 }
 
-// Drag a waypoint handle.
-function startWaypointDrag(ev,e,idx){
+// Drag a waypoint handle. `fresh` means a ghost-handle that already pushed history.
+function startWaypointDrag(ev,e,idx,fresh){
   ev.stopPropagation(); ev.preventDefault();
   const r=cwrap.getBoundingClientRect();
-  const mv=m=>{ e.waypoints[idx]={x:m.clientX-r.left, y:m.clientY-r.top}; drawWires(); };
-  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+  let pushed=!!fresh, sx=ev.clientX, sy=ev.clientY;
+  const mv=m=>{
+    if(!pushed && (Math.abs(m.clientX-sx)>2||Math.abs(m.clientY-sy)>2)){pushHistory();pushed=true;}
+    e.waypoints[idx]={x:m.clientX-r.left, y:m.clientY-r.top}; drawWires(); };
+  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);renderEdgeInspector();};
   document.addEventListener('mousemove',mv); document.addEventListener('mouseup',up);
 }
 function mk0(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
@@ -671,7 +830,29 @@ function mk0(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000
 function selectNode(id){selected=id;selKind='node';refreshSel();renderInspector();}
 function selectEdge(id){selected=id;selKind='edge';refreshSel();renderInspector();drawWires();}
 function refreshSel(){document.querySelectorAll('.node').forEach(n=>n.classList.toggle('sel',selKind==='node'&&n.id===selected));}
-canvas.addEventListener('mousedown',e=>{if(e.target===canvas){selected=null;selKind=null;refreshSel();renderInspector();drawWires();}});
+canvas.addEventListener('mousedown',e=>{
+  if(e.target!==canvas)return;
+  if(armedType){
+    const r=cwrap.getBoundingClientRect();
+    pushHistory();
+    addNode(armedType, e.clientX-r.left-52, e.clientY-r.top-32);
+    disarm();
+    return;
+  }
+  selected=null;selKind=null;refreshSel();renderInspector();drawWires();
+});
+document.addEventListener('keydown',e=>{
+  const typing=/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement&&document.activeElement.tagName);
+  if(e.key==='Escape'){disarm();}
+  if(typing)return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!e.shiftKey){e.preventDefault();undo();}
+  else if((e.ctrlKey||e.metaKey)&&(e.key.toLowerCase()==='y'||(e.key.toLowerCase()==='z'&&e.shiftKey))){e.preventDefault();redo();}
+  else if((e.key==='Delete'||e.key==='Backspace')&&selected){e.preventDefault();
+    pushHistory();
+    if(selKind==='node')deleteNode(selected);
+    else if(selKind==='edge'){delete edges[selected];selected=null;selKind=null;renderInspector();drawWires();}
+  }
+});
 
 function renderInspector(){
   const ins=document.getElementById('inspector');
@@ -770,7 +951,7 @@ function wireInspector(n){
   if(flt)flt.oninput=()=>{collectSpec(n);n._filter=flt.value;renderInspector();
     const f=document.getElementById('comp_filter');if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length);}};
   const del=document.getElementById('delBtn');
-  if(del)del.onclick=()=>{deleteNode(n.id);};
+  if(del)del.onclick=()=>{pushHistory();deleteNode(n.id);};
 }
 function collectSpec(n){
   const g=id=>{const e=document.getElementById(id);return e?e.value:null;};
@@ -804,8 +985,8 @@ function renderEdgeInspector(){
     <div class="insp-body"><div class="field"><label>Stream name</label><input id="e_name" value="${e.name}"></div>${routeField}${res}
     <button class="del-btn" id="delE">Delete stream</button></div>`;
   document.getElementById('e_name').oninput=ev=>{e.name=ev.target.value;drawWires();};
-  document.getElementById('straightBtn').onclick=()=>{e.waypoints=[];drawWires();renderEdgeInspector();};
-  document.getElementById('delE').onclick=()=>{delete edges[e.id];selected=null;selKind=null;renderInspector();drawWires();};
+  document.getElementById('straightBtn').onclick=()=>{pushHistory();e.waypoints=[];drawWires();renderEdgeInspector();};
+  document.getElementById('delE').onclick=()=>{pushHistory();delete edges[e.id];selected=null;selKind=null;renderInspector();drawWires();};
 }
 function deleteNode(id){
   Object.values(edges).filter(e=>e.from===id||e.to===id).forEach(e=>delete edges[e.id]);
@@ -1199,18 +1380,27 @@ function status(msg,err){const s=document.getElementById('status');s.textContent
 let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
 
 document.getElementById('btnRun').onclick=solve;
+document.getElementById('btnUndo').onclick=undo;
+document.getElementById('btnRedo').onclick=redo;
 document.getElementById('thermoSel').onchange=e=>{THERMO=e.target.value;status('Property method: '+e.target.options[e.target.selectedIndex].text+' · press Solve to re-run');};
 document.getElementById('routeSel').onchange=e=>{ROUTE=e.target.value;drawWires();};
-document.getElementById('btnClear').onclick=()=>{
-  nodes={};edges={};nid=eid=0;selected=null;selKind=null;
+
+// raw clear (no history) used internally by examples
+function clearAll(){
+  nodes={};edges={};nid=eid=0;selected=null;selKind=null;disarm();
   canvas.innerHTML='';drawWires();renderInspector();
   document.getElementById('drawerInner').innerHTML='';drawer.classList.remove('open');
+}
+document.getElementById('btnClear').onclick=()=>{
+  if(Object.keys(nodes).length||Object.keys(edges).length)pushHistory();
+  clearAll();
   status('Cleared');
 };
 
 // ---------- example: feed → preheat → distillation column → products ----------
 document.getElementById('btnSample').onclick=()=>{
-  document.getElementById('btnClear').onclick();
+  pushHistory();
+  clearAll();
   addNode('feed',50,120);
   addNode('heater',210,120);
   addNode('column',370,120);
@@ -1226,19 +1416,19 @@ document.getElementById('btnSample').onclick=()=>{
   addEdge(ids[0],ids[1]);addEdge(ids[1],ids[2]);
   addEdge(ids[2],ids[3]);addEdge(ids[2],ids[4]);
   Object.values(edges).forEach((e,i)=>e.name='S'+(i+1));
-  selected=null;renderInspector();drawWires();
+  selected=null;renderInspector();drawWires();updateUndoButtons();
   status('Example loaded · benzene/toluene distillation (15 stages) · press Solve');
 };
 
 // ---------- recycle example: feed → mixer → reactor → splitter (purge + recycle) ----------
 document.getElementById('btnRecycle').onclick=()=>{
-  document.getElementById('btnClear').onclick();
-  addNode('feed',40,90);
-  addNode('mixer',200,110);
-  addNode('reactor',350,110);
-  addNode('splitter',500,110);
-  addNode('product',650,55);   // product
-  addNode('product',650,180);  // (unused leg placeholder removed below)
+  pushHistory();
+  clearAll();
+  addNode('feed',40,100);
+  addNode('mixer',210,110);
+  addNode('reactor',370,110);
+  addNode('splitter',540,110);
+  addNode('product',710,65);
   const ids=Object.keys(nodes);
   const feed=nodes[ids[0]]; feed.name='Feed';
   COMP_LIST.forEach(c=>feed.spec.comp[c]=0);
@@ -1247,24 +1437,23 @@ document.getElementById('btnRecycle').onclick=()=>{
   const rx=nodes[ids[2]];rx.name='Reactor';rx.spec.key='nHexane';rx.spec.conv=0.35;rx.spec.prod='Benzene';
   const sp=nodes[ids[3]];sp.name='Splitter';sp.spec.frac=0.30;  // 30% to product, 70% recycled
   nodes[ids[4]].name='Product';
-  // remove the spare product node we don't need; keep layout clean
-  deleteNode(ids[5]);
-  const i2=Object.keys(nodes);
   addEdge(ids[0],ids[1]);          // feed -> mixer
   addEdge(ids[1],ids[2]);          // mixer -> reactor
   addEdge(ids[2],ids[3]);          // reactor -> splitter
   addEdge(ids[3],ids[4]);          // splitter out1 -> product
   addEdge(ids[3],ids[1]);          // splitter out2 -> mixer (RECYCLE)
-  Object.values(edges).forEach((e,i)=>e.name='S'+(i+1));
-  // rename the recycle stream for clarity
+  // route the recycle stream as a clean loop below the row
   const recyc=Object.values(edges).find(e=>e.from===ids[3]&&e.to===ids[1]);
-  if(recyc)recyc.name='Recycle';
-  selected=null;renderInspector();drawWires();
+  if(recyc){recyc.name='Recycle';
+    recyc.waypoints=[{x:585,y:230},{x:255,y:230}];}
+  Object.values(edges).forEach((e,i)=>{if(e.name[0]==='S')e.name='S'+(i+1);});
+  selected=null;renderInspector();drawWires();updateUndoButtons();
   status('Recycle example loaded · reactor loop with 70% recycle · press Solve to converge the tear');
 };
 
 buildPalette();
-status('Idle · drag blocks from the left, connect ports, then Solve');
+updateUndoButtons();
+status('Idle · click a palette block then click the canvas to place it · drag a block\'s blue dot to connect');
 </script>
 </body>
 </html>
