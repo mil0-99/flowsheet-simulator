@@ -1,2 +1,2 @@
-# flowsheet-simulator
-open-source flowsheeting software
+# FlowSim
+open-source steady-state process simulator
