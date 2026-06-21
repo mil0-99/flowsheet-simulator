@@ -508,13 +508,15 @@ function gMixer(){return svg('0 0 88 84',
 // Splitter: triangle pointing left — standard PFD split/tee block (inlet at tip, outlets on right face)
 function gSplit(){return svg('0 0 88 84',
   `<polygon points="86,6 86,78 2,42" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
-// Utility heater/cooler: rectangular shell with hot (top) and cold (bottom) wave indicators
+// Heater/cooler: shell-and-tube symbol — rectangular shell with half-ellipse bonnets at each end
 function gHeater(){return svg('0 0 92 72',
-  `<line x1="0" y1="36" x2="14" y2="36" stroke="${SY}" stroke-width="2"/>
-   <rect x="14" y="20" width="64" height="32" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M24 28 q8-7 16 0 q8 7 16 0" stroke="${AC}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-   <path d="M24 44 q8 7 16 0 q8-7 16 0" stroke="${CL}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-   <line x1="78" y1="36" x2="92" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+  `<line x1="0" y1="36" x2="6" y2="36" stroke="${SY}" stroke-width="2"/>
+   <path d="M20 20 A14 16 0 0 0 20 52" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <rect x="20" y="20" width="52" height="32" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M72 20 A14 16 0 0 1 72 52" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M30 29 q7-6 14 0 q7 6 14 0" stroke="${AC}" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.7"/>
+   <path d="M30 43 q7 6 14 0 q7-6 14 0" stroke="${CL}" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.7"/>
+   <line x1="86" y1="36" x2="92" y2="36" stroke="${SY}" stroke-width="2"/>`);}
 // 2-stream heat exchanger: wider shell with dual process stream nozzles, orange=hot blue=cold
 function gHeatEx(){return svg('0 0 110 80',
   `<line x1="0" y1="22" x2="14" y2="22" stroke="${AC}" stroke-width="2"/>
@@ -525,12 +527,12 @@ function gHeatEx(){return svg('0 0 110 80',
    <line x1="14" y1="40" x2="96" y2="40" stroke="${SY}" stroke-width="1.2" opacity="0.4"/>
    <path d="M26 22 q9-7 18 0 q9 7 18 0 q9-7 18 0" stroke="${AC}" stroke-width="2" fill="none" stroke-linecap="round"/>
    <path d="M26 58 q9 7 18 0 q9-7 18 0 q9 7 18 0" stroke="${CL}" stroke-width="2" fill="none" stroke-linecap="round"/>`);}
-// Centrifugal pump: circle casing + downward triangle base (standard P&ID symbol)
+// Centrifugal pump: circle casing with solid filled inscribed triangle pointing to discharge (ISA 5.1)
 function gPump(){return svg('0 0 84 72',
-  `<line x1="0" y1="36" x2="23" y2="36" stroke="${SY}" stroke-width="2"/>
-   <circle cx="42" cy="30" r="20" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M26 50 L58 50 L42 66 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <line x1="61" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+  `<line x1="0" y1="36" x2="16" y2="36" stroke="${SY}" stroke-width="2"/>
+   <circle cx="42" cy="36" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <polygon points="22,22 22,50 62,36" fill="${SY}"/>
+   <line x1="68" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
 // Flash drum: vertical pressure vessel with ellipsoidal heads, nozzle stubs, and liquid level
 function gFlash(){return svg('0 0 84 96',
   `<line x1="42" y1="0" x2="42" y2="10" stroke="${SY}" stroke-width="2"/>
