@@ -488,62 +488,75 @@ function inPorts(type){return UNIT_DEFS[type].ports.filter(p=>p.dir==='in');}
 const SY='var(--line)', AC='var(--steam)', CL='var(--cool)', FILL='var(--node)';
 function svg(vb,inner){return `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block">${inner}</svg>`;}
 
-// Feed: source / supply (circle with outgoing arrow — standard stream source)
+// Feed: pentagon source tag — standard PFD supply terminal
 function gFeed(){return svg('0 0 96 62',
-  `<circle cx="26" cy="31" r="16" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M26 23v16M26 31h6" stroke="${SY}" stroke-width="1.6" fill="none" opacity="0.5"/>
-   <path d="M42 31h34" stroke="${AC}" stroke-width="2.4" fill="none"/>
-   <path d="M68 26l9 5-9 5z" fill="${AC}"/>`);}
-// Product: sink / delivery (incoming arrow into a filled node)
+  `<polygon points="6,10 80,10 92,31 80,52 6,52" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="92" y1="31" x2="96" y2="31" stroke="${SY}" stroke-width="2"/>`);}
+// Product: pentagon sink tag — standard PFD destination terminal
 function gProduct(){return svg('0 0 96 62',
-  `<path d="M20 31h34" stroke="${SY}" stroke-width="2.4" fill="none"/>
-   <path d="M46 26l9 5-9 5z" fill="${SY}"/>
-   <circle cx="72" cy="31" r="16" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <circle cx="72" cy="31" r="5" fill="${SY}"/>`);}
-// Mixing tee: streams join at a junction node (PFD mixing point)
+  `<line x1="0" y1="31" x2="4" y2="31" stroke="${SY}" stroke-width="2"/>
+   <polygon points="90,10 16,10 4,31 16,52 90,52" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <circle cx="57" cy="31" r="5" fill="${SY}"/>`);}
+// Mixer: triangle pointing right — standard PFD mixing block (multi-inlet left face, outlet at tip)
 function gMixer(){return svg('0 0 88 84',
-  `<path d="M18 24h26M18 42h26M18 60h26" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M44 42h26" stroke="${AC}" stroke-width="2.4" fill="none"/>
-   <circle cx="44" cy="42" r="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
-// Splitting tee: one stream branches at a junction node
+  `<polygon points="2,6 2,78 86,42" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
+// Splitter: triangle pointing left — standard PFD split/tee block (inlet at tip, outlets on right face)
 function gSplit(){return svg('0 0 88 84',
-  `<path d="M14 42h30" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M44 42h22M66 42V18M66 42v24" stroke="${AC}" stroke-width="2.2" fill="none"/>
-   <path d="M66 18l-4 6h8z M66 66l-4 -6h8z" fill="${AC}"/>
-   <circle cx="44" cy="42" r="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
-// Heat exchanger: ISO circle symbol with the two-pass internal tube
+  `<polygon points="86,6 86,78 2,42" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
+// Heat exchanger: circle with split centerline + hot/cold wave indicators (ISO 10628 style)
 function gHeater(){return svg('0 0 92 72',
-  `<circle cx="46" cy="36" r="27" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M19 36h11l4 -13 8 26 8 -26 8 26 4 -13h11" stroke="${AC}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`);}
-// Centrifugal pump: standard symbol — circle with tangential top discharge on a base
+  `<line x1="0" y1="36" x2="18" y2="36" stroke="${SY}" stroke-width="2"/>
+   <circle cx="46" cy="36" r="28" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="18" y1="36" x2="74" y2="36" stroke="${SY}" stroke-width="1.4" opacity="0.55"/>
+   <path d="M26 27 q5-7 10 0 q5 7 10 0 q5-7 10 0" stroke="${AC}" stroke-width="2" fill="none" stroke-linecap="round"/>
+   <path d="M26 45 q5 7 10 0 q5-7 10 0 q5 7 10 0" stroke="${CL}" stroke-width="2" fill="none" stroke-linecap="round"/>
+   <line x1="74" y1="36" x2="92" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+// Centrifugal pump: circle with inscribed triangle — standard ISA/P&ID pump symbol
 function gPump(){return svg('0 0 84 72',
-  `<circle cx="40" cy="34" r="22" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M40 12 H66" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M40 12 A22 22 0 0 1 62 34" fill="none" stroke="${SY}" stroke-width="0"/>
-   <path d="M24 56 L56 56 L50 68 L30 68 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M30 56 L34 54 M50 56 L46 54" stroke="${SY}" stroke-width="0"/>
-   <path d="M40 34 L58 24" stroke="${CL}" stroke-width="2" fill="none"/>
-   <path d="M27 34a13 13 0 0 1 26 0" stroke="${CL}" stroke-width="1.6" fill="none" opacity="0.7"/>`);}
-// Flash drum: vertical pressure vessel with rounded heads + liquid level
+  `<line x1="0" y1="36" x2="16" y2="36" stroke="${SY}" stroke-width="2"/>
+   <circle cx="42" cy="36" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <polygon points="22,22 22,50 62,36" fill="none" stroke="${SY}" stroke-width="2"/>
+   <line x1="68" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+// Flash drum: vertical pressure vessel with ellipsoidal heads, nozzle stubs, and liquid level
 function gFlash(){return svg('0 0 84 96',
-  `<path d="M22 18 a20 14 0 0 1 40 0 V78 a20 14 0 0 1 -40 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M22 58 a20 8 0 0 0 40 0" stroke="${CL}" stroke-width="1.8" fill="none"/>
-   <ellipse cx="42" cy="58" rx="20" ry="8" fill="${CL}" opacity="0.12"/>`);}
-// Distillation column: tall trayed tower with rounded heads
+  `<line x1="42" y1="0" x2="42" y2="10" stroke="${SY}" stroke-width="2"/>
+   <line x1="0" y1="48" x2="18" y2="48" stroke="${SY}" stroke-width="2"/>
+   <line x1="42" y1="86" x2="42" y2="96" stroke="${SY}" stroke-width="2"/>
+   <rect x="18" y="18" width="48" height="68" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="42" cy="18" rx="24" ry="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="42" cy="86" rx="24" ry="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="18" y1="60" x2="66" y2="60" stroke="${CL}" stroke-width="1.5" opacity="0.65"/>`);}
+// Distillation column: tall trayed tower with ellipsoidal heads and nozzle stubs
 function gColumn(){return svg('0 0 78 150',
-  `<path d="M14 22 a25 12 0 0 1 50 0 V128 a25 12 0 0 1 -50 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   ${[42,58,74,90,106].map(y=>`<path d="M17 ${y}h44" stroke="${CL}" stroke-width="1.5" fill="none"/>`).join('')}`);}
-// Component separator / generic vessel with internal split line
+  `<line x1="39" y1="0" x2="39" y2="6" stroke="${SY}" stroke-width="2"/>
+   <line x1="39" y1="144" x2="39" y2="150" stroke="${SY}" stroke-width="2"/>
+   <line x1="0" y1="75" x2="15" y2="75" stroke="${SY}" stroke-width="2"/>
+   <line x1="63" y1="82" x2="78" y2="82" stroke="${SY}" stroke-width="2"/>
+   <rect x="15" y="14" width="48" height="122" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="39" cy="14" rx="24" ry="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="39" cy="136" rx="24" ry="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   ${[32,50,68,86,104,122].map(y=>`<line x1="15" y1="${y}" x2="63" y2="${y}" stroke="${SY}" stroke-width="1.5" opacity="0.4"/>`).join('')}`);}
+// Component separator: rounded vessel with structured-packing chevron pattern
 function gSep(){return svg('0 0 84 96',
-  `<path d="M20 16 a22 10 0 0 1 44 0 V80 a22 10 0 0 1 -44 0 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M20 48h44" stroke="${AC}" stroke-width="1.8" fill="none" stroke-dasharray="4 3"/>`);}
-// Reactor: stirred-tank vessel with agitator shaft & impeller blades (CSTR)
+  `<line x1="42" y1="0" x2="42" y2="14" stroke="${SY}" stroke-width="2"/>
+   <line x1="0" y1="48" x2="16" y2="48" stroke="${SY}" stroke-width="2"/>
+   <line x1="42" y1="82" x2="42" y2="96" stroke="${SY}" stroke-width="2"/>
+   <rect x="16" y="14" width="52" height="68" rx="6" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M22 36 l8-8 8 8 8-8 8 8" stroke="${SY}" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+   <path d="M22 48 l8-8 8 8 8-8 8 8" stroke="${SY}" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>
+   <path d="M22 60 l8-8 8 8 8-8 8 8" stroke="${SY}" stroke-width="1.5" fill="none" opacity="0.5" stroke-linecap="round"/>`);}
+// CSTR reactor: vertical stirred-tank vessel with motor, agitator shaft, and flat-blade impeller
 function gReactor(){return svg('0 0 90 96',
-  `<rect x="22" y="16" width="46" height="66" rx="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <path d="M45 6 V50" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M33 50 H57" stroke="${SY}" stroke-width="3" fill="none"/>
-   <path d="M33 50 L37 44 M57 50 L53 44" stroke="${SY}" stroke-width="2" fill="none"/>
-   <path d="M28 66c5 -5 9 0 14 -5s9 0 14 -5" stroke="${CL}" stroke-width="1.6" fill="none" opacity="0.55"/>`);}
+  `<line x1="0" y1="48" x2="16" y2="48" stroke="${SY}" stroke-width="2"/>
+   <line x1="74" y1="48" x2="90" y2="48" stroke="${SY}" stroke-width="2"/>
+   <rect x="16" y="22" width="58" height="58" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="45" cy="22" rx="29" ry="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <ellipse cx="45" cy="80" rx="29" ry="9" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <circle cx="45" cy="10" r="8" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="45" y1="18" x2="45" y2="58" stroke="${SY}" stroke-width="2"/>
+   <line x1="30" y1="58" x2="60" y2="58" stroke="${SY}" stroke-width="2.5"/>
+   <line x1="30" y1="52" x2="30" y2="64" stroke="${SY}" stroke-width="2"/>
+   <line x1="60" y1="52" x2="60" y2="64" stroke="${SY}" stroke-width="2"/>`);}
 
 // ============================================================
 //  STATE
