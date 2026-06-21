@@ -456,6 +456,11 @@ const UNIT_DEFS = {
   heater:  {name:'Heater / Cooler', cat:'Thermal', w:92,h:72, glyph:gHeater, ports:[
     {id:'in',label:'Inlet',dir:'in',side:'left',pos:0.5},
     {id:'out',label:'Outlet',dir:'out',side:'right',pos:0.5}]},
+  heatex:  {name:'Heat Exchanger', cat:'Thermal', w:110,h:80, glyph:gHeatEx, ports:[
+    {id:'hot_in', label:'Hot In',   dir:'in',  side:'left',  pos:0.28},
+    {id:'hot_out',label:'Hot Out',  dir:'out', side:'right', pos:0.28},
+    {id:'cold_in',label:'Cold In',  dir:'in',  side:'left',  pos:0.72},
+    {id:'cold_out',label:'Cold Out',dir:'out', side:'right', pos:0.72}]},
   pump:    {name:'Pump', cat:'Pressure', w:84,h:72, glyph:gPump, ports:[
     {id:'in',label:'Suction',dir:'in',side:'left',pos:0.5},
     {id:'out',label:'Discharge',dir:'out',side:'right',pos:0.5}]},
@@ -503,20 +508,29 @@ function gMixer(){return svg('0 0 88 84',
 // Splitter: triangle pointing left — standard PFD split/tee block (inlet at tip, outlets on right face)
 function gSplit(){return svg('0 0 88 84',
   `<polygon points="86,6 86,78 2,42" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
-// Heat exchanger: circle with split centerline + hot/cold wave indicators (ISO 10628 style)
+// Utility heater/cooler: rectangular shell with hot (top) and cold (bottom) wave indicators
 function gHeater(){return svg('0 0 92 72',
-  `<line x1="0" y1="36" x2="18" y2="36" stroke="${SY}" stroke-width="2"/>
-   <circle cx="46" cy="36" r="28" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <line x1="18" y1="36" x2="74" y2="36" stroke="${SY}" stroke-width="1.4" opacity="0.55"/>
-   <path d="M26 27 q5-7 10 0 q5 7 10 0 q5-7 10 0" stroke="${AC}" stroke-width="2" fill="none" stroke-linecap="round"/>
-   <path d="M26 45 q5 7 10 0 q5-7 10 0 q5 7 10 0" stroke="${CL}" stroke-width="2" fill="none" stroke-linecap="round"/>
-   <line x1="74" y1="36" x2="92" y2="36" stroke="${SY}" stroke-width="2"/>`);}
-// Centrifugal pump: circle with inscribed triangle — standard ISA/P&ID pump symbol
+  `<line x1="0" y1="36" x2="14" y2="36" stroke="${SY}" stroke-width="2"/>
+   <rect x="14" y="20" width="64" height="32" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M24 28 q8-7 16 0 q8 7 16 0" stroke="${AC}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+   <path d="M24 44 q8 7 16 0 q8-7 16 0" stroke="${CL}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+   <line x1="78" y1="36" x2="92" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+// 2-stream heat exchanger: wider shell with dual process stream nozzles, orange=hot blue=cold
+function gHeatEx(){return svg('0 0 110 80',
+  `<line x1="0" y1="22" x2="14" y2="22" stroke="${AC}" stroke-width="2"/>
+   <line x1="96" y1="22" x2="110" y2="22" stroke="${AC}" stroke-width="2"/>
+   <line x1="0" y1="58" x2="14" y2="58" stroke="${CL}" stroke-width="2"/>
+   <line x1="96" y1="58" x2="110" y2="58" stroke="${CL}" stroke-width="2"/>
+   <rect x="14" y="8" width="82" height="64" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="14" y1="40" x2="96" y2="40" stroke="${SY}" stroke-width="1.2" opacity="0.4"/>
+   <path d="M26 22 q9-7 18 0 q9 7 18 0 q9-7 18 0" stroke="${AC}" stroke-width="2" fill="none" stroke-linecap="round"/>
+   <path d="M26 58 q9 7 18 0 q9-7 18 0 q9 7 18 0" stroke="${CL}" stroke-width="2" fill="none" stroke-linecap="round"/>`);}
+// Centrifugal pump: circle casing + downward triangle base (standard P&ID symbol)
 function gPump(){return svg('0 0 84 72',
-  `<line x1="0" y1="36" x2="16" y2="36" stroke="${SY}" stroke-width="2"/>
-   <circle cx="42" cy="36" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
-   <polygon points="22,22 22,50 62,36" fill="none" stroke="${SY}" stroke-width="2"/>
-   <line x1="68" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+  `<line x1="0" y1="36" x2="23" y2="36" stroke="${SY}" stroke-width="2"/>
+   <circle cx="42" cy="30" r="20" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <path d="M26 50 L58 50 L42 66 Z" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <line x1="61" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
 // Flash drum: vertical pressure vessel with ellipsoidal heads, nozzle stubs, and liquid level
 function gFlash(){return svg('0 0 84 96',
   `<line x1="42" y1="0" x2="42" y2="10" stroke="${SY}" stroke-width="2"/>
@@ -620,6 +634,7 @@ function defaultSpec(type){
   switch(type){
     case 'feed': return {T:25,P:1,flow:100, comp:Object.fromEntries(COMP_LIST.map((c,i)=>[c, i<2?50:0]))};
     case 'heater': return {mode:'T', T:80, duty:0};
+    case 'heatex': return {T_hot_out:60};
     case 'pump': return {Pout:5};
     case 'splitter': return {frac:0.5};
     case 'flash': return {T:70, P:1};
@@ -1278,6 +1293,7 @@ function renderInspector(){
   // solved diagnostics
   let diag='';
   if(n.type==='heater'&&n._duty!==undefined) diag=`Duty: <b>${n._duty.toFixed(1)} kW</b>`;
+  if(n.type==='heatex'&&n._duty!==undefined) diag=`Q transferred: <b>${Math.abs(n._duty).toFixed(1)} kW</b><br>Cold outlet T: <b>${n._Tcold_out!=null?n._Tcold_out.toFixed(1):'—'} °C</b>`;
   if(n.type==='pump'&&n._work!==undefined) diag=`Pump work: <b>${n._work.toFixed(2)} kW</b>`;
   if(n.type==='column'&&n._colConverged!==undefined){
     const tp=n._Tprofile||[];
@@ -1315,7 +1331,10 @@ function specFields(n){
         <div class="field" id="hfld">${s.mode==='T'
           ? `<label>Outlet T (°C)</label><input id="s_T" value="${s.T}">`
           : `<label>Duty Q (kW, +=heat)</label><input id="s_duty" value="${s.duty}">`}</div>
-        <div class="hint">Sensible heat only (single-phase). Duty reported either way.</div>`;
+        <div class="hint">Single-stream utility heater/cooler. Duty reported either way.</div>`;
+    case 'heatex':
+      return `<div class="field"><label>Hot side outlet T (°C)</label><input id="s_T_hot_out" value="${s.T_hot_out}"></div>
+        <div class="hint">Adiabatic 2-stream exchanger. Specify the hot outlet temperature; the cold outlet is calculated from the energy balance.<br>Orange ports = hot stream · Blue ports = cold stream.</div>`;
     case 'pump':
       return `<div class="field"><label>Outlet pressure (bar)</label><input id="s_Pout" value="${s.Pout}"></div>
         <div class="hint">Raises pressure; ideal (isothermal liquid). Pump work estimated.</div>`;
@@ -1376,6 +1395,7 @@ function collectSpec(n){
     document.querySelectorAll('[data-comp]').forEach(i=>{s.comp[i.dataset.comp]=+i.value||0;});
   }
   if(n.type==='heater'){ if(g('s_mode'))s.mode=g('s_mode'); if(g('s_T')!==null)s.T=+g('s_T'); if(g('s_duty')!==null)s.duty=+g('s_duty'); }
+  if(n.type==='heatex'){if(g('s_T_hot_out')!==null)s.T_hot_out=+g('s_T_hot_out');}
   if(n.type==='pump')s.Pout=+g('s_Pout');
   if(n.type==='splitter')s.frac=Math.max(0,Math.min(1,+g('s_frac')));
   if(n.type==='flash'){s.T=+g('s_T');s.P=+g('s_P');}
@@ -1576,6 +1596,32 @@ function solveUnit(n,ins,outs){
       else { const Q=s.duty*3600;
         st.phase=f.phase; st.T=solveTfromH(st,f.H+Q); st.phase=phaseOf(st); n._duty=s.duty; }
       put('out',st);
+      break;
+    }
+    case 'heatex':{
+      // Identify which inlet connects to hot_in vs cold_in by port name
+      const inEdges=Object.values(edges).filter(e=>e.to===n.id&&e.solved);
+      const hotEdge=inEdges.find(e=>e.toPort==='hot_in');
+      const coldEdge=inEdges.find(e=>e.toPort==='cold_in');
+      const hot=(hotEdge&&hotEdge.solved)||emptyStream();
+      const cold=(coldEdge&&coldEdge.solved)||emptyStream();
+      const hotOut=emptyStream(), coldOut=emptyStream();
+      for(const c of COMP_LIST){hotOut.comp[c]=hot.comp[c]; coldOut.comp[c]=cold.comp[c];}
+      hotOut.P=hot.P; coldOut.P=cold.P;
+      // Hot side: cool to specified outlet temperature
+      hotOut.T=s.T_hot_out; hotOut.phase=phaseOf(hotOut);
+      streamTotals(hotOut);
+      // Energy balance: Q released by hot = Q absorbed by cold
+      const Q=hot.H-hotOut.H; // kJ/h
+      n._duty=Q/3600;          // kW
+      const coldTot=COMP_LIST.reduce((a,c)=>a+cold.comp[c],0);
+      if(coldTot>0){
+        coldOut.phase=cold.phase;
+        coldOut.T=solveTfromH(coldOut,cold.H+Q);
+        coldOut.phase=phaseOf(coldOut);
+      } else { coldOut.T=cold.T; coldOut.phase=cold.phase; }
+      n._Tcold_out=coldOut.T;
+      put('hot_out',hotOut); put('cold_out',coldOut);
       break;
     }
     case 'pump':{
