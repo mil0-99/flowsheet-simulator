@@ -495,6 +495,12 @@ const UNIT_DEFS = {
   pump:    {name:'Pump', cat:'Pressure', w:84,h:72, glyph:gPump, ports:[
     {id:'in',label:'Suction',dir:'in',side:'left',pos:0.5},
     {id:'out',label:'Discharge',dir:'out',side:'right',pos:0.5}]},
+  compressor:{name:'Compressor', cat:'Pressure', w:96,h:80, glyph:gCompressor, ports:[
+    {id:'in', label:'Suction',   dir:'in',  side:'left',  pos:0.5},
+    {id:'out',label:'Discharge', dir:'out', side:'right', pos:0.5}]},
+  valve:   {name:'Control Valve', cat:'Pressure', w:72,h:64, glyph:gValve, ports:[
+    {id:'in', label:'Inlet',  dir:'in',  side:'left',  pos:0.5},
+    {id:'out',label:'Outlet', dir:'out', side:'right', pos:0.5}]},
   flash:   {name:'Flash Drum', cat:'Separation', w:84,h:96, glyph:gFlash, ports:[
     {id:'feed',label:'Feed',dir:'in',side:'left',pos:0.5},
     {id:'vap',label:'Vapor',dir:'out',side:'top',pos:0.5},
@@ -564,6 +570,20 @@ function gPump(){return svg('0 0 84 72',
    <circle cx="42" cy="36" r="26" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
    <polygon points="22,22 22,50 62,36" fill="${SY}"/>
    <line x1="68" y1="36" x2="84" y2="36" stroke="${SY}" stroke-width="2"/>`);}
+// Compressor: circle casing with hollow inscribed triangle — distinguished from pump (solid triangle)
+function gCompressor(){return svg('0 0 96 80',
+  `<line x1="0" y1="40" x2="18" y2="40" stroke="${SY}" stroke-width="2"/>
+   <circle cx="48" cy="40" r="30" fill="${FILL}" stroke="${SY}" stroke-width="2"/>
+   <polygon points="22,24 22,56 74,40" fill="none" stroke="${SY}" stroke-width="2.5"/>
+   <line x1="78" y1="40" x2="96" y2="40" stroke="${SY}" stroke-width="2"/>`);}
+// Control valve: bowtie body (two filled triangles meeting at vertex) + actuator stem and disk
+function gValve(){return svg('0 0 72 64',
+  `<line x1="0" y1="32" x2="8" y2="32" stroke="${SY}" stroke-width="2"/>
+   <polygon points="8,14 8,50 36,32" fill="${SY}"/>
+   <polygon points="64,14 64,50 36,32" fill="${SY}"/>
+   <line x1="64" y1="32" x2="72" y2="32" stroke="${SY}" stroke-width="2"/>
+   <line x1="36" y1="32" x2="36" y2="12" stroke="${SY}" stroke-width="2"/>
+   <circle cx="36" cy="6" r="6" fill="${FILL}" stroke="${SY}" stroke-width="2"/>`);}
 // Flash drum: vertical pressure vessel with ellipsoidal heads, nozzle stubs, and liquid level
 function gFlash(){return svg('0 0 84 96',
   `<line x1="42" y1="0" x2="42" y2="10" stroke="${SY}" stroke-width="2"/>
@@ -669,6 +689,8 @@ function defaultSpec(type){
     case 'heater': return {mode:'T', T:80, duty:0};
     case 'heatex': return {T_hot_out:60};
     case 'pump': return {Pout:5};
+    case 'compressor': return {Pout:10, eta:0.75};
+    case 'valve': return {Pout:0.5};
     case 'splitter': return {frac:0.5};
     case 'flash': return {T:70, P:1};
     case 'column': return {N:15, NF:8, R:2.0, D:50, P:1, sideFrac:0.1};
@@ -1328,6 +1350,8 @@ function renderInspector(){
   if(n.type==='heater'&&n._duty!==undefined) diag=`Duty: <b>${n._duty.toFixed(1)} kW</b>`;
   if(n.type==='heatex'&&n._duty!==undefined) diag=`Q transferred: <b>${Math.abs(n._duty).toFixed(1)} kW</b><br>Cold outlet T: <b>${n._Tcold_out!=null?n._Tcold_out.toFixed(1):'—'} °C</b>`;
   if(n.type==='pump'&&n._work!==undefined) diag=`Pump work: <b>${n._work.toFixed(2)} kW</b>`;
+  if(n.type==='compressor'&&n._work!==undefined) diag=`Shaft work: <b>${n._work.toFixed(1)} kW</b><br>Outlet T: <b>${n._Tout!=null?n._Tout.toFixed(1):'—'} °C</b>`;
+  if(n.type==='valve'&&n._Tout!==undefined) diag=`Outlet T: <b>${n._Tout.toFixed(1)} °C</b>`;
   if(n.type==='column'&&n._colConverged!==undefined){
     const tp=n._Tprofile||[];
     diag=`Column ${n._colConverged?'<b>converged</b>':'<b style="color:#e0976a">not converged</b>'}<br>
@@ -1371,6 +1395,13 @@ function specFields(n){
     case 'pump':
       return `<div class="field"><label>Outlet pressure (bar)</label><input id="s_Pout" value="${s.Pout}"></div>
         <div class="hint">Raises pressure; ideal (isothermal liquid). Pump work estimated.</div>`;
+    case 'compressor':
+      return `<div class="row2"><div class="field"><label>Outlet pressure (bar)</label><input id="s_Pout" value="${s.Pout}"></div>
+        <div class="field"><label>Isentropic efficiency</label><input id="s_eta" value="${s.eta}"></div></div>
+        <div class="hint">Isentropic ideal-gas compression. γ from molar-average Cp. Shaft work = W<sub>s</sub> / η.</div>`;
+    case 'valve':
+      return `<div class="field"><label>Outlet pressure (bar)</label><input id="s_Pout" value="${s.Pout}"></div>
+        <div class="hint">Isenthalpic throttling (Joule-Thomson). Outlet temperature from energy balance at constant H.</div>`;
     case 'splitter':
       return `<div class="field"><label>Fraction to outlet 1</label><input id="s_frac" value="${s.frac}"></div>
         <div class="hint">Splits total flow by ratio; composition unchanged on both legs.</div>`;
@@ -1430,6 +1461,8 @@ function collectSpec(n){
   if(n.type==='heater'){ if(g('s_mode'))s.mode=g('s_mode'); if(g('s_T')!==null)s.T=+g('s_T'); if(g('s_duty')!==null)s.duty=+g('s_duty'); }
   if(n.type==='heatex'){if(g('s_T_hot_out')!==null)s.T_hot_out=+g('s_T_hot_out');}
   if(n.type==='pump')s.Pout=+g('s_Pout');
+  if(n.type==='compressor'){s.Pout=+g('s_Pout'); s.eta=Math.max(0.1,Math.min(1.0,+g('s_eta')||0.75));}
+  if(n.type==='valve')s.Pout=+g('s_Pout');
   if(n.type==='splitter')s.frac=Math.max(0,Math.min(1,+g('s_frac')));
   if(n.type==='flash'){s.T=+g('s_T');s.P=+g('s_P');}
   if(n.type==='column'){s.N=Math.max(3,Math.round(+g('s_N')));s.NF=Math.round(+g('s_NF'));s.R=Math.max(0.01,+g('s_R'));s.D=Math.max(0.01,+g('s_D'));s.P=+g('s_P');if(g('s_sideFrac')!==null)s.sideFrac=Math.max(0,Math.min(0.9,+g('s_sideFrac')));}
@@ -1661,6 +1694,40 @@ function solveUnit(n,ins,outs){
       const f=ins[0]||emptyStream(); const st=emptyStream();
       for(const c of COMP_LIST)st.comp[c]=f.comp[c]; st.T=f.T;st.P=s.Pout;st.phase='Liquid';
       n._work=Math.max(0,(s.Pout-f.P))*1e5*(f.massFlow/1000/1000)/3600/1000;
+      put('out',st);
+      break;
+    }
+    case 'compressor':{
+      const f=ins[0]||emptyStream(); const st=emptyStream();
+      for(const c of COMP_LIST)st.comp[c]=f.comp[c];
+      st.P=s.Pout; st.phase='Vapor';
+      const tot=COMP_LIST.reduce((a,c)=>a+f.comp[c],0);
+      if(tot>0&&f.P>0&&s.Pout>f.P){
+        const CpVavg=COMP_LIST.reduce((a,c)=>a+f.comp[c]*COMPONENTS[c].CpV,0)/tot;
+        const gamma=CpVavg/(CpVavg-R);
+        const Tin_K=f.T+273.15;
+        const Ts_K=Tin_K*Math.pow(s.Pout/f.P,(gamma-1)/gamma);
+        const eta=s.eta||0.75;
+        const dT=(Ts_K-Tin_K)/eta;
+        st.T=f.T+dT;
+        n._work=tot*CpVavg*dT/3.6;
+      } else {
+        st.T=f.T; n._work=0;
+      }
+      n._Tout=st.T;
+      streamTotals(st);
+      put('out',st);
+      break;
+    }
+    case 'valve':{
+      const f=ins[0]||emptyStream(); const st=emptyStream();
+      for(const c of COMP_LIST)st.comp[c]=f.comp[c];
+      st.P=s.Pout; st.phase=f.phase;
+      streamTotals(st);
+      st.T=solveTfromH(st,f.H);
+      st.phase=phaseOf(st);
+      streamTotals(st);
+      n._Tout=st.T;
       put('out',st);
       break;
     }
